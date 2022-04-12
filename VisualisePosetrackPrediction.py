@@ -65,7 +65,7 @@ sc.fit([frame for video in data for frame in video])
 # data = [[[(coord-min_pos)/(max_pos-min_pos) for coord in frame] for frame in video] for video in data]
 x = [sc.transform(item) for item in inputs]
 y = [sc.transform(item) for item in outputs]
-model = LSTM(34, 34, 200, 3)
+model = LSTM(30, 30, 200, 3)
 model.load_state_dict(load("TrainedPosetrackLSTM.pt"))
 model.eval()
 predicted = model(Tensor(np.array(x))).detach().numpy()

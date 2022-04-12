@@ -53,7 +53,7 @@ def _split_video_on_empty_frame(video):
     return [video]
 
 def frame_is_empty(frame): return all(item == None for item in frame[0].values())
-def frame_is_imperfect(frame): return frame[1] is None or tuple(frame[0].values()).count(None) > 2
+def frame_is_imperfect(frame): return tuple(frame[0].values()).count(None) > 2 or any(point != None and any(coord < 0 for coord in point) for point in frame[0].values())
 
 def split_videos_on_empty_frames(inputs):
     outputs = []
@@ -71,7 +71,7 @@ def remove_videos_below_length(inputs, length):
     return [video for video in inputs if len(video) >= length]
 
 def convert_frame_to_list(frame):
-    return [item for key in frame[0].keys() if key not in ("left_ear", "right_ear") for item in frame[0][key]] + frame[2]
+    return [item for key in frame[0].keys() if key not in ("left_ear", "right_ear") for item in frame[0][key]]
 
 def create_sliding_windows(data, window_input_len, window_output_len):
     ans = [[], []]
