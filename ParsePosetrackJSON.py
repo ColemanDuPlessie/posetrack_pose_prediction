@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Apr  7 10:24:02 2022
-
-@author: coley
+This needs documentation at some point
 """
 
 import json

@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Sun Apr 10 13:38:52 2022
-
-@author: coley
+This needs documentation at some point
 """
 
 import tkinter as tk
