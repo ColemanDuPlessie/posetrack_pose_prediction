@@ -14,32 +14,45 @@ from ParseKitchenC3D import load_and_preprocess_mocap, create_sliding_window
 seq_length = 100
 predict_length = 1
 
-if __name__ == "__main__":
-    print("Loading data...")
-    data = load_and_preprocess_mocap("mocap/brownies_.c3d")
-    
-    data = create_sliding_window(data, seq_length, predict_length, flatten = True)
-    
+def normalize_data(examples):
     sc = MinMaxScaler()
-    sc.fit([frame for in_or_out in data for frame in in_or_out])
+    sc.fit([frame for in_or_out in examples for example in in_or_out for frame in example])
     
-    print("Converting to Tensor...")
-    inputs, outputs = data
+    inputs, outputs = examples
     
     x = [sc.transform(item) for item in inputs]
     y = [sc.transform(item) for item in outputs]
+    return x, y
+
+def load_data(filename):
+    """
+    This code is in its own function so that the data's intermediate forms
+    will be garbage collected when the function ends, freeing up RAM to
+    use while training.
+    
+    Returns an array of the form (trainX, trainY, testX, testY)
+    """
+    print("Loading data...")
+    data = load_and_preprocess_mocap(filename)
+    
+    data = create_sliding_window(data, seq_length, predict_length, flatten = True)
+    
+    print("Normalizing data...")
+    x, y = normalize_data(data)
     
     train_size = int(len(y) * 0.67)
-    test_size = len(y) - train_size
     
-    dataX = Variable(torch.Tensor(np.array(x)))
-    dataY = Variable(torch.Tensor(np.array(y)))
+    print("Converting train set to Tensor...")
     
     trainX = Variable(torch.Tensor(np.array(x[0:train_size])))
     trainY = Variable(torch.Tensor(np.array(y[0:train_size])))
     
+    print("Converting test set to Tensor...")
+    
     testX = Variable(torch.Tensor(np.array(x[train_size:len(x)])))
     testY = Variable(torch.Tensor(np.array(y[train_size:len(y)])))
+    
+    return trainX, trainY, testX, testY
 
 class LSTM(nn.Module):
 
@@ -90,6 +103,8 @@ if __name__ == "__main__":
     
     train_losses = []
     test_losses  = []
+    
+    trainX, trainY, testX, testY = load_data("mocap/brownies_.c3d")
     
     print("Beginning training...")
     
