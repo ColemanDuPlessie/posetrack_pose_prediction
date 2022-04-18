@@ -4,6 +4,7 @@ This needs documentation at some point
 """
 
 import c3d
+import numpy as np
 
 def load_mocap(filename):
     """
@@ -16,7 +17,23 @@ def load_mocap(filename):
     """
     with open(filename, "rb") as raw_data:
         reader = c3d.Reader(raw_data)
-    return reader.read_frames()
+        return list(reader.read_frames())
+
+def preprocess_mocap(raw_data):
+    return (np.delete(np.delete(frame[1], 66, 0), np.s_[3:], 1) for frame in raw_data)
+
+def load_and_preprocess_mocap(filename):
+    return preprocess_mocap(load_mocap(filename))
+
+def create_sliding_window(data, window_input_len, window_output_len, flatten = False):
+    ans = [[], []]
+    if flatten: data = [frame.flatten() for frame in data]
+    for i in range(len(data)-window_input_len-window_output_len):
+        _x = data[i:(i+window_input_len)]
+        _y = data[i+window_input_len:i+window_input_len+window_output_len]
+        ans[0].append(_x)
+        ans[1].append(_y)
+    return ans
 
 if __name__ == "__main__":
     with open('mocap/brownies_.c3d', 'rb') as file:
