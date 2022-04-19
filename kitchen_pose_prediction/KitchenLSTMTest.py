@@ -3,6 +3,7 @@
 This needs documentation at some point
 """
 
+import gc # This is an ugly hack
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
@@ -99,7 +100,9 @@ if __name__ == "__main__":
     for epoch in range(num_epochs):
         lstm.train()
         outputs = lstm(train_data[:-seq_length], seq_length)
+        
         optimizer.zero_grad()
+        gc.collect()
         
         # obtain the loss function
         loss = criterion(outputs, train_data[seq_length:])
@@ -110,7 +113,9 @@ if __name__ == "__main__":
         
         train_losses.append(loss.item())
         
+        gc.collect()
         lstm.eval()
+        
         with torch.no_grad():
             train_predict = lstm(test_data[:-seq_length])
             test_loss = criterion(train_predict, test_data[seq_length:])
