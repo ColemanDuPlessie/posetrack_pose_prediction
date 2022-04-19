@@ -37,11 +37,11 @@ def load_data(filename):
     
     print("Converting train set to Tensor...")
     
-    train_data = Variable(torch.Tensor(data[0:train_size])).view(train_size, 1, 198)
+    train_data = Variable(torch.Tensor(data[0:train_size]))
     
     print("Converting test set to Tensor...")
     
-    test_data = Variable(torch.Tensor(data[train_size:])).view(test_size, 1, 198)
+    test_data = Variable(torch.Tensor(data[train_size:]))
     
     return train_data, test_data
 
@@ -49,28 +49,27 @@ class LSTM(nn.Module):
     def __init__(self, hidden_layers=64, frame_dimension = 1):
         super(LSTM, self).__init__()
         self.hidden_layers = hidden_layers
+        self.input_size = frame_dimension
         # lstm1, lstm2, linear are all layers in the network
         self.lstm1 = nn.LSTMCell(frame_dimension, self.hidden_layers)
         self.lstm2 = nn.LSTMCell(self.hidden_layers, self.hidden_layers)
         self.linear = nn.Linear(self.hidden_layers, frame_dimension)
         
     def forward(self, y, pre_output_len=1):
-        global view
-        view = y
-        outputs, n_samples = [], y.size(0)
-        h_t = torch.zeros(n_samples, self.hidden_layers, dtype=torch.float32)
-        c_t = torch.zeros(n_samples, self.hidden_layers, dtype=torch.float32)
-        h_t2 = torch.zeros(n_samples, self.hidden_layers, dtype=torch.float32)
-        c_t2 = torch.zeros(n_samples, self.hidden_layers, dtype=torch.float32)
+        outputs = []
+        h_t = torch.zeros(1, self.hidden_layers, dtype=torch.float32)
+        c_t = torch.zeros(1, self.hidden_layers, dtype=torch.float32)
+        h_t2 = torch.zeros(1, self.hidden_layers, dtype=torch.float32)
+        c_t2 = torch.zeros(1, self.hidden_layers, dtype=torch.float32)
         
-        for i, frame in enumerate(y.split(1, dim=1)):
+        for i, frame in enumerate(y.split(1, dim=0)):
             h_t, c_t = self.lstm1(frame, (h_t, c_t)) # initial hidden and cell states
             h_t2, c_t2 = self.lstm2(h_t, (h_t2, c_t2)) # new hidden and cell states
             output = self.linear(h_t2) # output from the last FC layer
             if i >= pre_output_len: outputs.append(output)
 
         # transform list to tensor    
-        outputs = torch.cat(outputs, dim=1)
+        outputs = torch.stack(outputs)
         return outputs
 
 if __name__ == "__main__":
@@ -99,11 +98,11 @@ if __name__ == "__main__":
     # Train the model
     for epoch in range(num_epochs):
         lstm.train()
-        outputs = lstm(train_data, seq_length)
+        outputs = lstm(train_data[:-seq_length], seq_length)
         optimizer.zero_grad()
         
         # obtain the loss function
-        loss = criterion(outputs, train_data[:-seq_length])
+        loss = criterion(outputs, train_data[seq_length:])
         
         loss.backward()
         
@@ -113,8 +112,8 @@ if __name__ == "__main__":
         
         lstm.eval()
         with torch.no_grad():
-            train_predict = lstm(test_data)
-            test_loss = criterion(train_predict, test_data[:-seq_length])
+            train_predict = lstm(test_data[:-seq_length])
+            test_loss = criterion(train_predict, test_data[seq_length:])
             test_losses.append(test_loss.item())
             if epoch % 1 == 0:
                 print("Epoch: %d, train loss: %1.5f, test loss: %1.5f" % (epoch, loss.item(), test_loss.item()))
