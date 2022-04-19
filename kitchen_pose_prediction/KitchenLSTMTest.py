@@ -99,13 +99,14 @@ if __name__ == "__main__":
     # Train the model
     for epoch in range(num_epochs):
         lstm.train()
-        outputs = lstm(train_data[:-seq_length], seq_length)
+        outputs = lstm(train_data[:-predict_length], seq_length)
+        outputs = outputs.reshape(outputs.size(0), outputs.size(2))
         
         optimizer.zero_grad()
         gc.collect()
         
         # obtain the loss function
-        loss = criterion(outputs, train_data[seq_length:])
+        loss = criterion(outputs, train_data[seq_length+predict_length:])
         
         loss.backward()
         
@@ -117,8 +118,9 @@ if __name__ == "__main__":
         lstm.eval()
         
         with torch.no_grad():
-            train_predict = lstm(test_data[:-seq_length])
-            test_loss = criterion(train_predict, test_data[seq_length:])
+            train_predict = lstm(test_data[:-predict_length], seq_length)
+            train_predict = train_predict.reshape(train_predict.size(0), train_predict.size(2))
+            test_loss = criterion(train_predict, test_data[seq_length+predict_length:])
             test_losses.append(test_loss.item())
             if epoch % 1 == 0:
                 print("Epoch: %d, train loss: %1.5f, test loss: %1.5f" % (epoch, loss.item(), test_loss.item()))
