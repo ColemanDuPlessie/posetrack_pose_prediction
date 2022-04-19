@@ -73,11 +73,11 @@ class LSTM(nn.Module):
         return out
 
 if __name__ == "__main__":
-    num_epochs = 5
+    num_epochs = 100
     learning_rate = 0.01
     
     input_size = 198
-    hidden_size = 2
+    hidden_size = 100
     num_layers = 2
     
     num_classes = 198
