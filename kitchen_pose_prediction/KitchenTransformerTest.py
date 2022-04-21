@@ -51,16 +51,18 @@ class Transformer(nn.Module):
         super(Transformer, self).__init__()
         self.hidden_size = hidden_size
         self.input_size = frame_dimension
+        self.encoding = nn.Linear(frame_dimension, hidden_size)
         self.transformer = nn.TransformerEncoder(nn.TransformerEncoderLayer(hidden_size, heads, hidden_size, batch_first=True), num_layers)
         
     def forward(self, y, pre_output_len=1):
         outputs = []
         frames = y.split(1, dim=0)
+        frames = [self.encoding(frame) for frame in frames]
         for i in range(len(frames)):
-            output = self.transformer(torch.stack(frames[:i]))
+            output = self.transformer(torch.stack(frames[:i+1]))
             if i >= pre_output_len: outputs.append(output)
 
-        # transform list to tensor    
+        outputs = [torch.matmul(self.encoding.weight.t(), output) for output in outputs] # This line is equivalent to multiplying by the transpose of the encoding layer's weight matrix.
         outputs = torch.stack(outputs)
         return outputs
 
@@ -70,7 +72,7 @@ if __name__ == "__main__":
     
     input_size = 198
     
-    hidden_size = 2
+    hidden_size = 4
     num_layers = 2
     
     num_classes = 198
