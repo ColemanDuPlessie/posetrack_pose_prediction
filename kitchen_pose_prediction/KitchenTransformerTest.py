@@ -4,6 +4,7 @@ This needs documentation at some point
 """
 
 import gc # This is an ugly hack
+import math
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
@@ -12,7 +13,8 @@ from torch.autograd import Variable
 from sklearn.preprocessing import MinMaxScaler
 from ParseKitchenC3D import load_and_preprocess_mocap
 
-seq_length = 100
+seq_length = 3 # TODO 100
+max_seq_length = 4 # TODO 1800
 predict_length = 1
 
 def normalize_data(examples):
@@ -47,19 +49,23 @@ def load_data(filename):
     return train_data, test_data
 
 class Transformer(nn.Module):
-    def __init__(self, hidden_size = 64, heads = 4, frame_dimension = 1, num_layers = 2):
+    def __init__(self, hidden_size = 64, heads = 4, frame_dimension = 1, encoder_layers = 2, decoder_layers = 2):
         super(Transformer, self).__init__()
         self.hidden_size = hidden_size
         self.input_size = frame_dimension
         self.encoding = nn.Linear(frame_dimension, hidden_size)
-        self.transformer = nn.TransformerEncoder(nn.TransformerEncoderLayer(hidden_size, heads, hidden_size, batch_first=True), num_layers)
+        self.encoder = nn.TransformerEncoder(nn.TransformerEncoderLayer(hidden_size, heads, hidden_size, batch_first=True), encoder_layers)
+        self.decoder = nn.TransformerDecoder(nn.TransformerDecoderLayer(hidden_size, heads, hidden_size, batch_first=True), encoder_layers)
+
         
-    def forward(self, y, pre_output_len=1):
+    def forward(self, y, pre_output_len=1, max_input_len=100):
         outputs = []
         frames = y.split(1, dim=0)
         frames = [self.encoding(frame) for frame in frames]
         for i in range(len(frames)):
-            output = self.transformer(torch.stack(frames[:i+1]))
+            if i % 25 == 0: print(i)
+            network_input = torch.stack(frames[i+1-max_input_len:i+1] if i >= max_input_len else frames[:i+1])
+            output = self.decoder(network_input, self.encoder(network_input))
             if i >= pre_output_len: outputs.append(output)
 
         outputs = [torch.matmul(self.encoding.weight.t(), output) for output in outputs] # This line is equivalent to multiplying by the transpose of the encoding layer's weight matrix.
@@ -77,7 +83,7 @@ if __name__ == "__main__":
     
     num_classes = 198
     
-    network = Transformer(hidden_size, 4, input_size, num_layers)
+    network = Transformer(hidden_size, 4, input_size, math.ceil(num_layers/2), math.floor(num_layers/2))
     
     criterion = torch.nn.MSELoss()    # mean-squared error for regression
     optimizer = torch.optim.Adam(network.parameters(), lr=learning_rate)
@@ -92,7 +98,7 @@ if __name__ == "__main__":
     # Train the model
     for epoch in range(num_epochs):
         network.train()
-        outputs = network(train_data[:-predict_length], seq_length)
+        outputs = network(train_data[:-predict_length], seq_length, max_seq_length)
         outputs = outputs.reshape(outputs.size(0), outputs.size(2))
         
         optimizer.zero_grad()
@@ -111,7 +117,7 @@ if __name__ == "__main__":
         network.eval()
         
         with torch.no_grad():
-            train_predict = network(test_data[:-predict_length], seq_length)
+            train_predict = network(test_data[:-predict_length], seq_length, max_seq_length)
             train_predict = train_predict.reshape(train_predict.size(0), train_predict.size(2))
             test_loss = criterion(train_predict, test_data[seq_length+predict_length:])
             test_losses.append(test_loss.item())
