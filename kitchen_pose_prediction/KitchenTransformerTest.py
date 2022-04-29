@@ -4,7 +4,6 @@ This needs documentation at some point
 """
 
 import gc # This is an ugly hack
-import math
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
@@ -66,9 +65,7 @@ class Transformer(nn.Module):
         frames = self.encoding(y)
         mask = generate_square_subsequent_mask(frames.size()[1])
         ans = self.transformer(frames, mask)[:, pre_output_len:]
-        reversed_encoding = self.encoding.weight # TODO .t()
-        assert y.equal(torch.matmul(frames, reversed_encoding))
-        ans = torch.matmul(ans, reversed_encoding)
+        ans = torch.matmul(ans-self.encoding.bias, torch.linalg.pinv(self.encoding.weight).t()) # This line effectively runs the self.encoding layer in reverse
 
         return ans
 
