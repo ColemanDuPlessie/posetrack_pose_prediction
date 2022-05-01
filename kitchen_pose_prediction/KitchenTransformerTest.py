@@ -22,6 +22,20 @@ def generate_square_subsequent_mask(sz):
     mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
     return mask
 
+def batch_timeseries_data(unbatched_data, batch_size = 256):
+    """
+    Takes unbatched_data, a Tensor of shape (1, L, N), where L is the length
+    of the timeseries input and n is the input size of the neural network.
+    Returns a Tensor of shape (L/B, B, N), where B is batch_size. If there
+    are frames 'left over' after dividing unbatched_data into L/B batches,
+    they are discarded.
+    If L < B, batch_timeseries_data will raise a RuntimeError.
+    """
+    ans = []
+    for batch_num in range(unbatched_data.size()[1]//batch_size):
+        ans.append(unbatched_data[0, batch_num*batch_size:(batch_num+1)*batch_size])
+    return torch.stack(ans)
+
 def normalize_data(examples):
     sc = MinMaxScaler()
     return sc.fit_transform(np.array([i.flatten() for i in examples]))
@@ -51,7 +65,7 @@ def load_data(filename):
     
     test_data = Variable(torch.Tensor(data[train_size:])).reshape(1, -1, input_size)
     
-    return train_data[:, :500], test_data[:, :200] # TODO I have manually limited the length of the train and test data for quick testing.
+    return train_data, test_data
 
 class Transformer(nn.Module):
     def __init__(self, hidden_size = 64, heads = 4, frame_dimension = 1, layers = 2):
@@ -70,10 +84,11 @@ class Transformer(nn.Module):
         return ans
 
 if __name__ == "__main__":
-    num_epochs = 100
+    num_epochs = 5
     learning_rate = 0.01
+    batch_size = 1024
     
-    hidden_size = 200
+    hidden_size = 256
     num_layers = 2
     
     num_classes = 198
@@ -87,6 +102,8 @@ if __name__ == "__main__":
     test_losses  = []
     
     train_data, test_data = load_data("mocap/brownies_.c3d")
+    train_data = batch_timeseries_data(train_data, batch_size)
+    test_data = batch_timeseries_data(test_data, batch_size)
     
     print("Beginning training...")
     
