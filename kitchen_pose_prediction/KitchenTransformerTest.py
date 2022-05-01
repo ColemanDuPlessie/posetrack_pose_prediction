@@ -84,16 +84,16 @@ class Transformer(nn.Module):
         return ans
 
 if __name__ == "__main__":
-    num_epochs = 5
+    num_epochs = 100
     learning_rate = 0.01
     batch_size = 1024
     
-    hidden_size = 256
+    hidden_size = 512
     num_layers = 2
     
     num_classes = 198
     
-    network = Transformer(hidden_size, 4, input_size, num_layers)
+    network = Transformer(hidden_size, 8, input_size, num_layers)
     
     criterion = torch.nn.MSELoss()    # mean-squared error for regression
     optimizer = torch.optim.Adam(network.parameters(), lr=learning_rate)
