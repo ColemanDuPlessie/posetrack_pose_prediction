@@ -12,7 +12,7 @@ from torch.autograd import Variable
 from sklearn.preprocessing import MinMaxScaler
 from ParseKitchenC3D import load_and_preprocess_mocap
 
-min_seq_length = 3 # TODO 100
+min_seq_length = 100
 predict_length = 1
 
 input_size = 198
@@ -70,10 +70,10 @@ class Transformer(nn.Module):
         return ans
 
 if __name__ == "__main__":
-    num_epochs = 2
+    num_epochs = 100
     learning_rate = 0.01
     
-    hidden_size = 4
+    hidden_size = 200
     num_layers = 2
     
     num_classes = 198
