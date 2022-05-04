@@ -88,8 +88,8 @@ if __name__ == "__main__":
     learning_rate = 0.01
     batch_size = 1024
     
-    hidden_size = 512
-    num_layers = 2
+    hidden_size = 768
+    num_layers = 4
     
     num_classes = 198
     
