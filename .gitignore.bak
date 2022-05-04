@@ -157,4 +157,4 @@ cython_debug/
 
 # End of https://www.toptal.com/developers/gitignore/api/python
  
-posetrack_data/
+posetrack_data/*
