@@ -118,8 +118,8 @@ if __name__ == "__main__":
     batch_size = 1024
     positional_embedding_max_len = batch_size * 2
     
-    hidden_size = 768
-    num_layers = 4
+    hidden_size = 512
+    num_layers = 2
     
     num_classes = 198
     
