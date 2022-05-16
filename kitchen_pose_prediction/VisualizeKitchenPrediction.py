@@ -22,6 +22,7 @@ ORANGE = (1, 0.7, 0.2)
 GREEN = (0.2, 0.9, 0.2)
 BLUE = (0.2, 0.3, 0.9)
 COLORS = (WHITE, RED, YELLOW, GREEN, BLUE, ORANGE)
+PURPLE = (0.6, 0.25, 0.55)
 
 
 @contextlib.contextmanager
@@ -94,7 +95,9 @@ class Viewer(pyglet.window.Window):
         self._frame_rate = c3d_reader.header.frame_rate
 
         self._maxlen = 16
-        self._trails = [[] for _ in range(c3d_reader.point_used)]
+        self._num_trails = c3d_reader.point_used
+        self._trails = [[] for _ in range(self._num_trails)]
+        self._selected_trail = 0
         self._reset_trails()
 
         self.trace = trace
@@ -176,7 +179,7 @@ class Viewer(pyglet.window.Window):
         k = pyglet.window.key
         if key == k.ESCAPE:
             pyglet.app.exit()
-        elif key == k.SPACE:
+        elif key == k.SPACE and modifiers & k.MOD_SHIFT:
             self.paused = False if self.paused else True
         elif key == k.PLUS or key == k.EQUAL:
             self._maxlen *= 2
@@ -184,11 +187,20 @@ class Viewer(pyglet.window.Window):
         elif key == k.UNDERSCORE or key == k.MINUS:
             self._maxlen = max(1, self._maxlen / 2)
             self._reset_trails()
-        elif key == k.RIGHT:
+        elif key == k.RIGHT and modifiers & k.MOD_SHIFT:
             skip = int(self._frame_rate)
             if modifiers:
                 skip *= 10
             [self._next_frame() for _ in range(skip)]
+        elif key == k.P:
+            pass # TODO
+        elif key == k.RIGHT:
+            self._selected_trail = (self._selected_trail + 1) % self._num_trails
+        elif key == k.LEFT:
+            self._selected_trail = (self._selected_trail - 1) % self._num_trails
+        elif key == k.SPACE:
+            pass # TODO
+        pass # TODO
 
     def on_draw(self):
         self.clear()
@@ -205,7 +217,7 @@ class Viewer(pyglet.window.Window):
         self.floor.draw(GL_TRIANGLES)
 
         for t, trail in enumerate(self._trails):
-            glColor4f(*(COLORS[t % len(COLORS)] + (0.7, )))
+            glColor4f(*(COLORS[t % len(COLORS)] + (0.7, ) if t != self._selected_trail else PURPLE + (0.7, )))
             point = None
             glBegin(GL_LINES)
             for point in trail:
@@ -213,10 +225,6 @@ class Viewer(pyglet.window.Window):
             glEnd()
             with gl_context(translate=point, scale=(0.02, 0.02, 0.02)):
                 self.sphere.draw(GL_TRIANGLES)
-    
-    def on_mouse_release(self, x, y, button, modifiers):
-        if button != pyglet.window.mouse.LEFT: return
-        pass # TODO
 
     def _reset_trails(self):
         self._trails = [collections.deque(t, self._maxlen) for t in self._trails]
