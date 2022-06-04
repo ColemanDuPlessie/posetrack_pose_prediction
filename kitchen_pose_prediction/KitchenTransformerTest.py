@@ -16,7 +16,7 @@ from ParseKitchenC3D import load_and_preprocess_mocap
 min_seq_length = 100
 predict_length = 1
 
-input_size = 198
+input_size = 198 - 14*3 # TODO: This is an ugly hack
 
 def generate_square_subsequent_mask(sz):
     mask = (torch.triu(torch.ones(sz, sz)) == 1).transpose(0, 1)
@@ -54,6 +54,8 @@ def load_data(filename):
     
     print("Normalizing data...")
     data = normalize_data(data)
+    
+    data = data[:, 14*3:] # TODO: This is an ugly hack
     
     train_size = int(len(data) * 0.67)
     test_size = len(data)-train_size
@@ -168,5 +170,6 @@ if __name__ == "__main__":
     plt.plot(test_losses, label = "Test")
     plt.legend()
     plt.yscale('log')
+    plt.title('With useless points')
     plt.show()
-    torch.save(network.state_dict(), "TrainedKitchenTransformer.pt")
+    # TODO torch.save(network.state_dict(), "TrainedKitchenTransformer.pt")
