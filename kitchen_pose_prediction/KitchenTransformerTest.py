@@ -7,21 +7,15 @@ import gc # This is an ugly hack
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
-import torch.nn as nn
-import math
 from torch.autograd import Variable
 from sklearn.preprocessing import MinMaxScaler
 from ParseKitchenC3D import load_and_preprocess_mocap
+from Models import TransformerEncoder
 
 min_seq_length = 100
 predict_length = 1
 
 input_size = 198 - 14*3 # TODO: This is an ugly hack
-
-def generate_square_subsequent_mask(sz):
-    mask = (torch.triu(torch.ones(sz, sz)) == 1).transpose(0, 1)
-    mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
-    return mask
 
 def batch_timeseries_data(unbatched_data, batch_size = 256):
     """
@@ -70,50 +64,6 @@ def load_data(filename):
     
     return train_data, test_data
 
-class PositionalEncoding(nn.Module):
-    """
-    This class is blatantly stolen in its entirety from the PyTorch docs,
-    specifically the following URL:
-    https://pytorch.org/tutorials/beginner/transformer_tutorial.html
-    """
-
-    def __init__(self, d_model: int, dropout: float = 0.1, max_len: int = 5000):
-        super().__init__()
-        self.dropout = nn.Dropout(p=dropout)
-
-        position = torch.arange(max_len).unsqueeze(1)
-        div_term = torch.exp(torch.arange(0, d_model, 2) * (-math.log(10000.0) / d_model))
-        pe = torch.zeros(max_len, 1, d_model)
-        pe[:, 0, 0::2] = torch.sin(position * div_term)
-        pe[:, 0, 1::2] = torch.cos(position * div_term)
-        self.register_buffer('pe', pe)
-
-    def forward(self, x):
-        """
-        Args:
-            x: Tensor, shape [seq_len, batch_size, embedding_dim]
-        """
-        x = x + self.pe[:x.size(0)]
-        return self.dropout(x)
-
-class Transformer(nn.Module):
-    
-    def __init__(self, hidden_size = 64, heads = 4, frame_dimension = 1, layers = 2, positional_embedding_max_len = 2048):
-        super(Transformer, self).__init__()
-        self.hidden_size = hidden_size
-        self.input_size = frame_dimension
-        self.encoding = nn.Linear(frame_dimension, hidden_size)
-        self.positional_encoding = PositionalEncoding(hidden_size, max_len = positional_embedding_max_len)
-        self.transformer = nn.TransformerEncoder(nn.TransformerEncoderLayer(hidden_size, heads, hidden_size, batch_first=True), layers)
-        
-    def forward(self, y, pre_output_len=1):
-        frames = self.positional_encoding(self.encoding(y))
-        mask = generate_square_subsequent_mask(frames.size()[1])
-        ans = self.transformer(frames, mask)[:, pre_output_len:]
-        ans = torch.matmul(ans-self.encoding.bias, torch.linalg.pinv(self.encoding.weight).t()) # This line effectively runs the self.encoding layer in reverse
-
-        return ans
-
 if __name__ == "__main__":
     num_epochs = 100
     learning_rate = 0.01
@@ -125,7 +75,7 @@ if __name__ == "__main__":
     
     num_classes = 198
     
-    network = Transformer(hidden_size, 8, input_size, num_layers, positional_embedding_max_len)
+    network = TransformerEncoder(hidden_size, 8, input_size, num_layers, positional_embedding_max_len)
     
     criterion = torch.nn.MSELoss()    # mean-squared error for regression
     optimizer = torch.optim.Adam(network.parameters(), lr=learning_rate)
@@ -172,4 +122,4 @@ if __name__ == "__main__":
     plt.yscale('log')
     plt.title('With useless points')
     plt.show()
-    # TODO torch.save(network.state_dict(), "TrainedKitchenTransformer.pt")
+    torch.save(network.state_dict(), "TrainedKitchenTransformer.pt")
