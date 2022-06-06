@@ -73,7 +73,7 @@ if __name__ == "__main__":
     hidden_size = 512
     num_layers = 2
     
-    num_classes = 198
+    num_classes = 198 - 14*3
     
     network = TransformerEncoder(hidden_size, 8, input_size, num_layers, positional_embedding_max_len)
     

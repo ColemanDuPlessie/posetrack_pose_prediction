@@ -69,22 +69,23 @@ def load_data(filename):
     return train_data, test_data
 
 if __name__ == "__main__":
-    num_epochs = 100
+    num_epochs = 3 # TODO
     learning_rate = 0.01
     batch_size = 1024
     positional_embedding_max_len = batch_size * 2
     
-    hidden_size = 512
+    hidden_size = 256 # TODO (was 512)
     num_layers = 2
     
-    num_classes = 198
+    num_classes = 198 - 14*3
     
     network1 = TransformerEncoder(hidden_size, 8, input_size, num_layers, positional_embedding_max_len)
     network2 = Informer(input_size, input_size, input_size, 1,
                         d_model = hidden_size, n_heads = 8,
                         e_layers = math.ceil(num_layers/2),
                         d_layers = math.floor(num_layers/2),
-                        d_ff = hidden_size, activation = "relu", device = torch.device("cpu"))
+                        d_ff = hidden_size, activation = "relu", device = torch.device("cpu"), 
+                        positional_embedding_max_len = positional_embedding_max_len)
     
     criterion = torch.nn.MSELoss()    # mean-squared error for regression
     optimizer1 = torch.optim.Adam(network1.parameters(), lr=learning_rate)
@@ -108,7 +109,7 @@ if __name__ == "__main__":
         network1.train()
         network2.train()
         outputs1 = network1(train_data[:, :-predict_length], min_seq_length)
-        outputs2 = network1(train_data[:, :-predict_length], min_seq_length)
+        outputs2 = network2(train_data[:, :-predict_length], min_seq_length)
         
         optimizer1.zero_grad()
         optimizer2.zero_grad()
