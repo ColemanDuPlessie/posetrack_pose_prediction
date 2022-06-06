@@ -69,7 +69,7 @@ def load_data(filename):
     return train_data, test_data
 
 if __name__ == "__main__":
-    num_epochs = 3 # TODO
+    num_epochs = 50 # TODO
     learning_rate = 0.01
     batch_size = 1024
     positional_embedding_max_len = batch_size * 2
