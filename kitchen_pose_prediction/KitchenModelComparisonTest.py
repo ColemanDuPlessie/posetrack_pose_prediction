@@ -11,7 +11,7 @@ import torch
 from torch.autograd import Variable
 from sklearn.preprocessing import MinMaxScaler
 from ParseKitchenC3D import load_and_preprocess_mocap
-from Models import TransformerEncoder, Informer
+from Models import TransformerEncoder, SimpleRepeater# TODO Informer
 
 min_seq_length = 100
 predict_length = 1
@@ -69,7 +69,7 @@ def load_data(filename):
     return train_data, test_data
 
 if __name__ == "__main__":
-    num_epochs = 50 # TODO
+    num_epochs = 10 # TODO
     learning_rate = 0.01
     batch_size = 1024
     positional_embedding_max_len = batch_size * 2
@@ -80,16 +80,19 @@ if __name__ == "__main__":
     num_classes = 198 - 14*3
     
     network1 = TransformerEncoder(hidden_size, 8, input_size, num_layers, positional_embedding_max_len)
-    network2 = Informer(input_size, input_size, input_size, 1,
-                        d_model = hidden_size, n_heads = 8,
-                        e_layers = math.ceil(num_layers/2),
-                        d_layers = math.floor(num_layers/2),
-                        d_ff = hidden_size, activation = "relu", device = torch.device("cpu"), 
-                        positional_embedding_max_len = positional_embedding_max_len)
-    
+    network2 = SimpleRepeater(input_size)
+# =============================================================================
+#     network2 = Informer(input_size, input_size, input_size, 1,
+#                         d_model = hidden_size, n_heads = 8,
+#                         e_layers = math.ceil(num_layers/2),
+#                         d_layers = math.floor(num_layers/2),
+#                         d_ff = hidden_size, activation = "relu", device = torch.device("cpu"), 
+#                         positional_embedding_max_len = positional_embedding_max_len)
+#     
+# =============================================================================
     criterion = torch.nn.MSELoss()    # mean-squared error for regression
     optimizer1 = torch.optim.Adam(network1.parameters(), lr=learning_rate)
-    optimizer2 = torch.optim.Adam(network2.parameters(), lr=learning_rate)
+    # optimizer2 = torch.optim.Adam(network2.parameters(), lr=learning_rate)
     
     print("Model 1 (Transformer) has %d parameters. Model 2 (Informer) has %d parameters" % (count_parameters(network1), count_parameters(network2)))
     
@@ -98,7 +101,7 @@ if __name__ == "__main__":
     train_losses2 = []
     test_losses2  = []
     
-    train_data, test_data = load_data("mocap/brownies_.c3d")
+    train_data, test_data = load_data("mocap/brownies1.c3d")
     train_data = batch_timeseries_data(train_data, batch_size)
     test_data = batch_timeseries_data(test_data, batch_size)
     
@@ -112,7 +115,7 @@ if __name__ == "__main__":
         outputs2 = network2(train_data[:, :-predict_length], min_seq_length)
         
         optimizer1.zero_grad()
-        optimizer2.zero_grad()
+        # optimizer2.zero_grad()
         gc.collect()
         
         # obtain the loss function
@@ -120,10 +123,10 @@ if __name__ == "__main__":
         loss2 = criterion(outputs2, train_data[:, min_seq_length+predict_length:])
         
         loss1.backward()
-        loss2.backward()
+        # loss2.backward()
         
         optimizer1.step()
-        optimizer2.step()
+        # optimizer2.step()
         
         train_losses1.append(loss1.item())
         train_losses2.append(loss2.item())
@@ -144,10 +147,10 @@ if __name__ == "__main__":
     
     plt.plot(train_losses1, label = "Train (Transformer)")
     plt.plot(test_losses1, label = "Test (Transformer)")
-    plt.plot(train_losses2, label = "Train (Informer)")
-    plt.plot(test_losses2, label = "Test (Informer)")
+    plt.plot(train_losses2, label = "Train (Benchmark)")
+    plt.plot(test_losses2, label = "Test (Benchmark)")
     plt.legend()
     plt.yscale('log')
     plt.show()
-    torch.save(network1.state_dict(), "TrainedKitchenTransformer.pt")
-    torch.save(network1.state_dict(), "TrainedKitchenInformer.pt")
+    # TODO torch.save(network1.state_dict(), "TrainedKitchenTransformer.pt")
+    # TODO torch.save(network1.state_dict(), "TrainedKitchenInformer.pt")
