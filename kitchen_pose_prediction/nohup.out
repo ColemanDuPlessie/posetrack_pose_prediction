@@ -1,0 +1,4 @@
+/iarai/home/andrew.gritsevskiy/.local/lib/python3.9/site-packages/c3d/c3d.py:1210: UserWarning: missing parameter POINT:DESCRIPTIONS
+  warnings.warn('missing parameter {}'.format(name))
+/iarai/home/andrew.gritsevskiy/.local/lib/python3.9/site-packages/c3d/c3d.py:1219: UserWarning: No analog data found in file.
+  warnings.warn('No analog data found in file.')
