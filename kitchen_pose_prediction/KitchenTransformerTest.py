@@ -83,7 +83,7 @@ if __name__ == "__main__":
     train_losses = []
     test_losses  = []
     
-    train_data, test_data = load_data("mocap/brownies_.c3d")
+    train_data, test_data = load_data("mocap/brownies1.c3d")
     train_data = batch_timeseries_data(train_data, batch_size)
     test_data = batch_timeseries_data(test_data, batch_size)
     

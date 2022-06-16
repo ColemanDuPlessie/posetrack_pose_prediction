@@ -16,7 +16,7 @@ from Models import TransformerEncoder, SimpleRepeater# TODO Informer
 min_seq_length = 100
 predict_length = 1
 
-input_size = 198 - 14*3 # TODO: This is an ugly hack
+input_size = 5 # TODO 198 - 14*3 # TODO: This is an ugly hack
 
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -53,7 +53,7 @@ def load_data(filename):
     print("Normalizing data...")
     data = normalize_data(data)
     
-    data = data[:, 14*3:] # TODO: This is an ugly hack
+    data = data[:, 14*3:14*3+5] # TODO data[:, 14*3:] # TODO: This is an ugly hack
     
     train_size = int(len(data) * 0.67)
     test_size = len(data)-train_size
@@ -69,15 +69,15 @@ def load_data(filename):
     return train_data, test_data
 
 if __name__ == "__main__":
-    num_epochs = 10 # TODO
+    num_epochs = 50 # TODO
     learning_rate = 0.01
     batch_size = 1024
     positional_embedding_max_len = batch_size * 2
     
-    hidden_size = 256 # TODO (was 512)
-    num_layers = 2
+    hidden_size = 1024
+    num_layers = 4
     
-    num_classes = 198 - 14*3
+    num_classes = 5 # TODO 198 - 14*3
     
     network1 = TransformerEncoder(hidden_size, 8, input_size, num_layers, positional_embedding_max_len)
     network2 = SimpleRepeater(input_size)
