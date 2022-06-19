@@ -4,12 +4,10 @@ This needs documentation at some point
 """
 
 import gc # This is an ugly hack
-import numpy as np
 import matplotlib.pyplot as plt
 import torch
 from torch.autograd import Variable
-from sklearn.preprocessing import MinMaxScaler
-from ParseKitchenC3D import load_and_prepare_mocaps
+from ParseKitchenC3D import load_and_prepare_mocaps, train_test_split
 from Models import TransformerEncoder, SimpleRepeater# TODO Informer
 
 min_seq_length = 100
@@ -19,13 +17,6 @@ input_size = 153
 
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
-
-def train_test_split(batches, train_qty = 0.67):
-    train_size = int(len(batches) * train_qty)
-    train_data = batches[:train_size]
-    test_data = batches[train_size:]
-    
-    return train_data, test_data
 
 def load_data(filenames, batch_size = 1024, train_qty = 0.67):
     """
@@ -66,7 +57,7 @@ if __name__ == "__main__":
     train_losses2 = []
     test_losses2  = []
     
-    train_data, test_data = load_data("mocap/brownies1.c3d")
+    train_data, test_data = load_data("mocap/brownies1.c3d", batch_size)
     
     print("Beginning training...")
     

@@ -118,3 +118,10 @@ def load_and_prepare_mocaps(files, batch_size = 1024, return_scaler = False):
     second element is a sklearn.preprocessing.MinMaxScaler fit to it).
     """
     return normalize_data(batch_tensors(load_and_preprocess_mocaps(files), batch_size), return_scaler)
+
+def train_test_split(batches, train_qty = 0.67):
+    train_size = int(len(batches) * train_qty)
+    train_data = batches[:train_size]
+    test_data = batches[train_size:]
+    
+    return train_data, test_data
