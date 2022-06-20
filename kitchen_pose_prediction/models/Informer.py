@@ -8,58 +8,29 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-class SimpleRepeater(nn.Module):
-    """
-    This "model" just assumes that the next position will be the exact same as
-    the previous position. For testing purposes only!
-    """
-    def __init__(self, input_size = 1):
-        super(SimpleRepeater, self).__init__()
-        self.input_size = 1
-        
-    def forward(self, y, pre_output_len=1):
-        return y[:, pre_output_len:, :]
+class TriangularCausalMask():
+    def __init__(self, B, L, device="cpu"):
+        mask_shape = [B, 1, L, L]
+        with torch.no_grad():
+            self._mask = torch.triu(torch.ones(mask_shape, dtype=torch.bool), diagonal=1).to(device)
 
-# !!! =============================================================================
-# Simple Repeater ends and LSTM begins here
-# !!! =============================================================================
+    @property
+    def mask(self):
+        return self._mask
 
-class TwoLayerLSTM(nn.Module):
-    def __init__(self, hidden_layers=64, frame_dimension = 1):
-        super(TwoLayerLSTM, self).__init__()
-        self.hidden_layers = hidden_layers
-        self.input_size = frame_dimension
-        # lstm1, lstm2, linear are all layers in the network
-        self.lstm1 = nn.LSTMCell(frame_dimension, self.hidden_layers)
-        self.lstm2 = nn.LSTMCell(self.hidden_layers, self.hidden_layers)
-        self.linear = nn.Linear(self.hidden_layers, frame_dimension)
-        
-    def forward(self, y, pre_output_len=1):
-        outputs = []
-        h_t = torch.zeros(1, self.hidden_layers, dtype=torch.float32)
-        c_t = torch.zeros(1, self.hidden_layers, dtype=torch.float32)
-        h_t2 = torch.zeros(1, self.hidden_layers, dtype=torch.float32)
-        c_t2 = torch.zeros(1, self.hidden_layers, dtype=torch.float32)
-        
-        for i, frame in enumerate(y.split(1, dim=0)):
-            h_t, c_t = self.lstm1(frame, (h_t, c_t)) # initial hidden and cell states
-            h_t2, c_t2 = self.lstm2(h_t, (h_t2, c_t2)) # new hidden and cell states
-            output = self.linear(h_t2) # output from the last FC layer
-            if i >= pre_output_len: outputs.append(output)
-
-        # transform list to tensor    
-        outputs = torch.stack(outputs)
-        return outputs
-
-# !!! =============================================================================
-# LSTM ends and Transformer begins here
-# !!! =============================================================================
-
-def generate_square_subsequent_mask(sz):
-    mask = (torch.triu(torch.ones(sz, sz)) == 1).transpose(0, 1)
-    mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
-    return mask
-
+class ProbMask():
+    def __init__(self, B, H, L, index, scores, device="cpu"):
+        _mask = torch.ones(L, scores.shape[-1], dtype=torch.bool).to(device).triu(1)
+        _mask_ex = _mask[None, None, :].expand(B, H, L, scores.shape[-1])
+        indicator = _mask_ex[torch.arange(B)[:, None, None],
+                             torch.arange(H)[None, :, None],
+                             index, :].to(device)
+        self._mask = indicator.view(scores.shape).to(device)
+    
+    @property
+    def mask(self):
+        return self._mask
+    
 class PositionalEncoding(nn.Module):
     """
     This class is blatantly stolen in its entirety from the PyTorch docs,
@@ -85,51 +56,6 @@ class PositionalEncoding(nn.Module):
         """
         x = x + self.pe[:x.size(0)]
         return self.dropout(x)
-
-class TransformerEncoder(nn.Module):
-    
-    def __init__(self, hidden_size = 64, heads = 4, frame_dimension = 1, layers = 2, positional_embedding_max_len = 2048):
-        super(TransformerEncoder, self).__init__()
-        self.hidden_size = hidden_size
-        self.input_size = frame_dimension
-        self.encoding = nn.Linear(frame_dimension, hidden_size)
-        self.positional_encoding = PositionalEncoding(hidden_size, max_len = positional_embedding_max_len)
-        self.transformer = nn.TransformerEncoder(nn.TransformerEncoderLayer(hidden_size, heads, hidden_size, batch_first=True), layers)
-        
-    def forward(self, y, pre_output_len=1):
-        frames = self.positional_encoding(self.encoding(y))
-        mask = generate_square_subsequent_mask(frames.size()[1])
-        ans = self.transformer(frames, mask)[:, pre_output_len:]
-        ans = torch.matmul(ans-self.encoding.bias, torch.linalg.pinv(self.encoding.weight).t()) # This line effectively runs the self.encoding layer in reverse # TODO It may or may not be making this model significantly worse...
-
-        return ans
-
-# !!! =============================================================================
-# Transformer ends and Informer begins here
-# !!! =============================================================================
-
-class TriangularCausalMask():
-    def __init__(self, B, L, device="cpu"):
-        mask_shape = [B, 1, L, L]
-        with torch.no_grad():
-            self._mask = torch.triu(torch.ones(mask_shape, dtype=torch.bool), diagonal=1).to(device)
-
-    @property
-    def mask(self):
-        return self._mask
-
-class ProbMask():
-    def __init__(self, B, H, L, index, scores, device="cpu"):
-        _mask = torch.ones(L, scores.shape[-1], dtype=torch.bool).to(device).triu(1)
-        _mask_ex = _mask[None, None, :].expand(B, H, L, scores.shape[-1])
-        indicator = _mask_ex[torch.arange(B)[:, None, None],
-                             torch.arange(H)[None, :, None],
-                             index, :].to(device)
-        self._mask = indicator.view(scores.shape).to(device)
-    
-    @property
-    def mask(self):
-        return self._mask
 
 class FullAttention(nn.Module):
     def __init__(self, mask_flag=True, factor=5, scale=None, attention_dropout=0.1, output_attention=False):

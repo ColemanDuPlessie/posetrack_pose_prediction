@@ -10,7 +10,7 @@ import torch
 from torch.autograd import Variable
 from sklearn.preprocessing import MinMaxScaler
 from ParseKitchenC3D import load_and_preprocess_mocap
-from Models import TwoLayerLSTM
+from models.LSTM import TwoLayerLSTM
 
 seq_length = 100
 predict_length = 1

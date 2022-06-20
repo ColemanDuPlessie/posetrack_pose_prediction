@@ -8,7 +8,9 @@ import matplotlib.pyplot as plt
 import torch
 from torch.autograd import Variable
 from ParseKitchenC3D import load_and_prepare_mocaps, train_test_split
-from Models import TransformerEncoder, SimpleRepeater# TODO Informer
+from models.benchmarks import SimpleRepeater
+from models.Transformer_encoder import TransformerEncoder
+# TODO from models.Informer import Informer
 
 min_seq_length = 100
 predict_length = 1
