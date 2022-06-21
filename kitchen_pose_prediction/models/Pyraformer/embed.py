@@ -1,12 +1,6 @@
 """
-Modified based on Informer.
-@inproceedings{haoyietal-informer-2021,
-  author    = {Haoyi Zhou and Shanghang Zhang and Jieqi Peng and Shuai Zhang and Jianxin Li and
-               Hui Xiong and Wancai Zhang},
-  title     = {Informer: Beyond Efficient Transformer for Long Sequence Time-Series Forecasting},
-  booktitle = {The Thirty-Fifth {AAAI} Conference on Artificial Intelligence, {AAAI} 2021, Virtual Conference},
-  volume    = {35}, number    = {12}, pages     = {11106--11115}, publisher = {{AAAI} Press}, year      = {2021},
-}
+Currently, the only class in this file that is actually being used is the
+SingleStepEmbedding.
 """
 
 import torch
@@ -113,15 +107,13 @@ class CustomEmbedding(nn.Module):
 
 """The SingleStepEmbedding is used by all datasets for single step forecasting."""
 class SingleStepEmbedding(nn.Module):
-    # TODO list: why is data_emb a Conv1d? We don't use covariaates.
-    def __init__(self, cov_size, num_seq, d_model, input_size, device):
+    # TODO why is data_emb a Conv1d?
+    def __init__(self, d_input, num_seq, d_model, input_size, device):
         super().__init__()
-
-        self.cov_size = cov_size
+        
         self.num_class = num_seq
-        self.cov_emb = nn.Linear(cov_size+1, d_model)
         padding = 1 if torch.__version__>='1.5.0' else 2
-        self.data_emb = nn.Conv1d(in_channels=1, out_channels=d_model, kernel_size=3, padding=padding, padding_mode='circular')
+        self.data_emb = nn.Conv1d(in_channels=d_input, out_channels=d_model, kernel_size=3, padding=padding, padding_mode='circular')
 
         self.position = torch.arange(input_size, device=device).unsqueeze(0)
         self.position_vec = torch.tensor([math.pow(10000.0, 2.0 * (i // 2) / d_model) for i in range(d_model)], device=device)
@@ -144,12 +136,7 @@ class SingleStepEmbedding(nn.Module):
         return result
 
     def forward(self, x):
-        covs = x[:, :, 1:(1+self.cov_size)]
-        seq_ids = ((x[:, :, -1] / self.num_class) - 0.5).unsqueeze(2)
-        covs = torch.cat([covs, seq_ids], dim=-1)
-        cov_embedding = self.cov_emb(covs)
-        data_embedding = self.data_emb(x[:, :, 0].unsqueeze(2).permute(0, 2, 1)).transpose(1,2)
-        embedding = cov_embedding + data_embedding
+        embedding = self.data_emb(x.unsqueeze(2).permute(0, 2, 1)).transpose(1,2) # TODO i need to take a hard look at the unsqueeze, permute, and transpose, because, from what I can tell, the don't do anything right now..
 
         position = self.position.repeat(len(x), 1).to(x.device)
         position_emb = self.transformer_embedding(position, self.position_vec.to(x.device))

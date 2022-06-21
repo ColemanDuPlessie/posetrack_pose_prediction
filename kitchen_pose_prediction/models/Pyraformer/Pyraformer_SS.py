@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
 """
 For those who, like myself, wonder what SS stands for, it stands for Single
-Step.
+Step. The only modifications we have made to the Pyraformer are to slightly
+tweak it (primarily in the embedding) to work with a multivariate time series
+(instead of a univariate time series with covariates) and to initialize it
+with separate arguments, instead of passing them all in as 'opt', although that
+is just a quality-of-life change. All the logic remains true to the original.
 """
 import torch
 import torch.nn as nn
@@ -37,7 +41,7 @@ class Encoder(nn.Module):
                     normalize_before=False) for i in range(opt.n_layer)
                 ])
 
-        self.embedding = SingleStepEmbedding(opt.covariate_size, opt.num_seq, opt.d_model, opt.input_size, opt.device)
+        self.embedding = SingleStepEmbedding(opt.d_input, opt.num_seq, opt.d_model, opt.input_size, opt.device)
 
         self.conv_layers = Bottleneck_Construct(opt.d_model, opt.window_size, opt.d_k)
 
@@ -67,8 +71,8 @@ class Model(nn.Module):
         self.encoder = Encoder(opt)
 
         # convert hidden vectors into two scalar
-        self.mean_hidden = Predictor(4 * opt.d_model, 1)
-        self.var_hidden = Predictor(4 * opt.d_model, 1)
+        self.mean_hidden = Predictor(4 * opt.d_model, opt.d_input) # The Predictor layers are literally just wrappers of Linear layers.
+        self.var_hidden = Predictor(4 * opt.d_model, opt.d_input) # I don't know why they multiply d_model by 4. Maybe it's supposed to be the number of heads?
 
         self.softplus = nn.Softplus()
 
