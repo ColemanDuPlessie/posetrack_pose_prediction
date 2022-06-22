@@ -5,7 +5,6 @@ This needs documentation at some point
 
 import tkinter as tk
 import torch
-import numpy as np
 from torch.autograd import Variable
 from sklearn.preprocessing import MinMaxScaler
 from ParseKitchenC3D import load_and_preprocess_mocap
@@ -23,8 +22,6 @@ models = {TwoLayerLSTM(100, input_size) : (min_pred_len,),
 
 file_to_view = "mocap/brownies1.c3d"
 pretrained_model_to_view = "TrainedKitchenTransformer.pt"
-
-sc = MinMaxScaler()
 
 root = tk.Tk()
 root.title("Kitchen Prediction Visualizer")
@@ -44,27 +41,14 @@ def batch_timeseries_data_with_overlap(unbatched_data, batch_size = 256, overlap
     share a number of elements equal to overlap.
     """
     ans = []
-    for batch_num in range((unbatched_data.size()[1]+overlap)//(batch_size-overlap)):
-        ans.append(unbatched_data[0, batch_num*(batch_size-overlap):(batch_num+1)*(batch_size-overlap)+overlap])
+    for batch_num in range((unbatched_data.shape[0]+overlap)//(batch_size-overlap)):
+        ans.append(torch.tensor(unbatched_data[batch_num*(batch_size-overlap):(batch_num+1)*(batch_size-overlap)+overlap]))
     return torch.stack(ans)
 
 def load_data(filename):
-    print("Loading data...")
-    data = load_and_preprocess_mocap(filename)
-    
-    data = np.array([i.flatten() for i in data])
-    data = data[:, 14*3:] # TODO: This is an ugly hack
-    
-    print("Normalizing data...")
-    data = sc.fit_transform(data)
-    
-    print("Converting data to Tensor...")
-    
-    data = Variable(torch.Tensor(data)).reshape(1, -1, input_size)
-    
-    print("Data from %s loaded successfully!" % filename)
-    
-    return data
+    ans = torch.tensor(preprocess_mocap(load_mocap(filename)))
+    ans = ans.reshape(ans.shape[0], -1)
+    return Variable(ans)
 
 def draw_point(x, y, color):
     x = float(x)*scale + width/2
@@ -81,8 +65,10 @@ class Person:
         frame = next(self.frame_generator)
         for point in range(0, len(frame), 3):
             draw_point(frame[point+projection[0]], frame[point+projection[1]], self.color)
-            
+         
+sc = MinMaxScaler()
 data = load_data(file_to_view)
+data = sc.fit_transform(data)
 state_dict = torch.load(pretrained_model_to_view)
 for model_type in models:
     try:
@@ -97,7 +83,7 @@ assert model in models
 model.eval()
 print("Model %s loaded successfully!" % pretrained_model_to_view)
 
-ground_truth_generator = (frame for frame in sc.inverse_transform(data[0])[min_pred_len:])
+ground_truth_generator = (frame for frame in sc.inverse_transform(data)[min_pred_len:])
 batched_data = batch_timeseries_data_with_overlap(data, max_pred_len, min_pred_len)
 total_expected_len = batched_data.shape[0] * (batched_data.shape[1] - min_pred_len)
 with torch.no_grad():
