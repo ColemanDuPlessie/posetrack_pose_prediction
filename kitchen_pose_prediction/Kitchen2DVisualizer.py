@@ -7,8 +7,10 @@ import tkinter as tk
 import torch
 from torch.autograd import Variable
 from sklearn.preprocessing import MinMaxScaler
-from ParseKitchenC3D import load_mocap, preprocess_mocap
-from Models import TwoLayerLSTM, TransformerEncoder, Informer
+from ParseKitchenC3D import load_and_preprocess_mocap
+from models.LSTM import TwoLayerLSTM
+from models.Transformer_encoder import TransformerEncoder
+from models.Informer import Informer
 
 input_size = 198 - 14*3 # TODO: This is an ugly hack
 min_pred_len = 128
