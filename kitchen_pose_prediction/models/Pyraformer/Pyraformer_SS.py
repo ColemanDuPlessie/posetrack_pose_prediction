@@ -7,12 +7,13 @@ tweak it (primarily in the embedding) to work with a multivariate time series
 with separate arguments, instead of passing them all in as 'opt', although that
 is just a quality-of-life change. All the logic remains true to the original.
 """
+from argparse import Namespace
 import torch
 import torch.nn as nn
-from Layers import EncoderLayer, Predictor
-from Layers import Bottleneck_Construct
-from Layers import get_mask, refer_points, get_k_q, get_q_k
-from embed import SingleStepEmbedding
+from .Layers import EncoderLayer, Predictor
+from .Layers import Bottleneck_Construct
+from .Layers import get_mask, refer_points, get_k_q, get_q_k
+from .embed import SingleStepEmbedding
 
 
 class Encoder(nn.Module):
@@ -92,3 +93,6 @@ class Model(nn.Module):
         sample_mu = mu[:, -1] * v
         sample_sigma = sigma[:, -1] * v
         return sample_mu, sample_sigma
+
+def pyraformer_params(d_input=153, d_model=512, window_size=[4, 4, 4], n_head=4, n_layer=4, batch_size=1024, inner_size=3, device='cuda', use_tvm=False, inner_hid=512, d_k=128, d_v=128, dropout=0.1): # TODO I don't know if batch_size is actually the batch size or if it's something else.
+    return Namespace(d_input=d_input, d_model=d_model, window_size=window_size, n_head=n_head, n_layer=n_layer, input_size=batch_size, inner_size=inner_size, device=device, use_tvm=use_tvm, d_inner_hid=inner_hid, d_k=d_k, d_v=d_v, num_seq=d_input, dropout=dropout)

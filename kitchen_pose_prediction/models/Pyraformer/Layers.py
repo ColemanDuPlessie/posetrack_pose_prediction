@@ -2,9 +2,9 @@ from torch.functional import align_tensors
 import torch.nn as nn
 
 from torch.nn.modules.linear import Linear
-from SubLayers import MultiHeadAttention, PositionwiseFeedForward
+from .SubLayers import MultiHeadAttention, PositionwiseFeedForward
 import torch
-from embed import DataEmbedding, CustomEmbedding
+from .embed import DataEmbedding, CustomEmbedding
 import math
 
 
