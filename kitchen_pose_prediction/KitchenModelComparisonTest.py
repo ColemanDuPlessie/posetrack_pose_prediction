@@ -20,6 +20,8 @@ predict_length = 1
 
 input_size = 153
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad) # TODO this may not count certain types of nested layers
 
@@ -91,8 +93,10 @@ class MultiModelHandler:
     This class is a collection of ModelWrappers (found above).
     """
     
-    def __init__(self, *model_wrappers):
+    def __init__(self, device, *model_wrappers):
         self.networks = model_wrappers
+        for network in self.networks:
+            network.to(device)
     
     def train(self, train_set, min_seq_len, predict_len=1, backprop=True):
         output = []
@@ -145,11 +149,11 @@ if __name__ == "__main__":
     
     num_classes = 153
     
-    networks = MultiModelHandler(ModelWrapper(TransformerEncoder(hidden_size, 8, input_size, num_layers, positional_embedding_max_len), "Transformer (encoder only)", torch.optim.Adam, torch.nn.MSELoss(), {"lr" : learning_rate}),
+    networks = MultiModelHandler(device, ModelWrapper(TransformerEncoder(hidden_size, 8, input_size, num_layers, positional_embedding_max_len), "Transformer (encoder only)", torch.optim.Adam, torch.nn.MSELoss(), {"lr" : learning_rate}),
                 ModelWrapper(Informer(input_size, input_size, input_size, 1, d_model = hidden_size, n_heads = 8,
                                          e_layers = math.ceil(num_layers/2), d_layers = math.floor(num_layers/2),
                                          d_ff = hidden_size, activation = "relu", positional_embedding_max_len = positional_embedding_max_len), "Informer", torch.optim.Adam, torch.nn.MSELoss(), {"lr" : learning_rate}),
-                ModelWrapper(SimpleRepeater(input_size), "Benchmark", None, torch.nn.MSELoss()),)
+                ModelWrapper(SimpleRepeater(input_size), "Benchmark", None, torch.nn.MSELoss()))
     
 # =============================================================================
 #     network1 = TransformerEncoder(hidden_size, 8, input_size, num_layers, positional_embedding_max_len)
@@ -177,6 +181,8 @@ if __name__ == "__main__":
                                        "mocap/sandwich1.c3d", "mocap/sandwich2.c3d", "mocap/sandwich3.c3d", "mocap/sandwich4.c3d", ), batch_size)
     train_data.requires_grad = True
     test_data.requires_grad = True
+    train_data.to(device)
+    test_data.to(device)
     
     print("Beginning training...")
     
