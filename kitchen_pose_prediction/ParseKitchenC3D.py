@@ -104,7 +104,7 @@ def normalize_data(batched_data, return_scaler = False):
     """
     sc = MinMaxScaler()
     for batch in batched_data: sc.partial_fit(batch)
-    ans = torch.Tensor([sc.transform(batch) for batch in batched_data])
+    ans = torch.Tensor(np.array([sc.transform(batch) for batch in batched_data]))
     if return_scaler: return (ans, sc)
     else: return ans
 
