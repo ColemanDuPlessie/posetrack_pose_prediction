@@ -10,6 +10,7 @@ import torch
 from torch.autograd import Variable
 from ParseKitchenC3D import load_and_prepare_mocaps, train_test_split
 from models.benchmarks import SimpleRepeater
+from models.LSTM import LSTMBenchmark
 from models.Transformer_encoder import TransformerEncoder
 from models.Informer import Informer
 # TODO from models.Pyraformer.Pyraformer_SS import Model as Pyraformer
@@ -139,13 +140,13 @@ class MultiModelHandler:
                 torch.save(network.model.state_dict(), filenames[idx])
 
 if __name__ == "__main__":
-    num_epochs = 50 # TODO
+    num_epochs = 200 # TODO
     learning_rate = 0.01
     batch_size = 1024
     positional_embedding_max_len = batch_size * 2
     
-    hidden_size = 1024 # TODO
-    num_layers = 4 # TODO
+    hidden_size = 2048 # TODO
+    num_layers = 6 # TODO
     
     num_classes = 153
     
@@ -153,24 +154,8 @@ if __name__ == "__main__":
                 ModelWrapper(Informer(input_size, input_size, input_size, 1, d_model = hidden_size, n_heads = 8,
                                          e_layers = math.ceil(num_layers/2), d_layers = math.floor(num_layers/2),
                                          d_ff = hidden_size, activation = "relu", positional_embedding_max_len = positional_embedding_max_len), "Informer", torch.optim.Adam, torch.nn.MSELoss(), {"lr" : learning_rate}),
+                ModelWrapper(LSTMBenchmark(hidden_size, input_size, num_classes, num_layers), "LSTM", torch.optim.Adam, torch.nn.MSELoss(), {"lr" : learning_rate}),
                 ModelWrapper(SimpleRepeater(input_size), "Benchmark", None, torch.nn.MSELoss()))
-    
-# =============================================================================
-#     network1 = TransformerEncoder(hidden_size, 8, input_size, num_layers, positional_embedding_max_len)
-#     network2 = SimpleRepeater(input_size)
-#     network3 = Pyraformer(pyraformer_params(num_classes, hidden_size, n_head=8, n_layer=num_layers, batch_size=batch_size, inner_hid=hidden_size, d_k=hidden_size/4, d_v=hidden_size/4, device='cpu')) # !!! Change device to cuda if you're running a model of any significant size.
-#     network2 = Informer(input_size, input_size, input_size, 1,
-#                         d_model = hidden_size, n_heads = 8,
-#                         e_layers = math.ceil(num_layers/2),
-#                         d_layers = math.floor(num_layers/2),
-#                         d_ff = hidden_size, activation = "relu", device = torch.device("cpu"), 
-#                         positional_embedding_max_len = positional_embedding_max_len)
-#     
-#     criterion = torch.nn.MSELoss()    # mean-squared error for regression
-#     optimizer1 = torch.optim.Adam(network1.parameters(), lr=learning_rate)
-#     # optimizer2 = torch.optim.Adam(network2.parameters(), lr=learning_rate)
-#     optimizer3 = torch.optim.Adam(network3.parameters(), lr=learning_rate)
-# =============================================================================
     
     print(networks.get_params_string())
     
@@ -193,4 +178,4 @@ if __name__ == "__main__":
         print(networks.get_losses_string())
     
     networks.plot_losses_over_time()
-    networks.save_models(("TrainedKitchenTransformer.pt", "TrainedKitchenInformer.pt", None))
+    networks.save_models(("TrainedKitchenTransformer.pt", "TrainedKitchenInformer.pt", "TrainedKitchenLSTM.pt", None))
