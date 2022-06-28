@@ -7,6 +7,7 @@ import gc # This is an ugly hack
 import math
 import matplotlib.pyplot as plt
 import torch
+from BatchManager import BatchManager
 from torch.autograd import Variable
 from ParseKitchenC3D import load_and_prepare_mocaps, train_test_split
 from models.benchmarks import SimpleRepeater
@@ -49,38 +50,53 @@ class ModelWrapper:
             self.train_losses = []
             self.test_losses = []
     
-    def train(self, train_set, min_seq_len, predict_len=1, backprop=True):
+    def train(self, train_loader, min_seq_len, predict_len=1, backprop=True):
         self.model.train()
-        try:
-            output = self.model(train_set[:, :-predict_len, :], min_seq_len)
-        except TypeError:
-            print("This feature actually worked!")
-            output = self.model(train_set[:, :-predict_len, :])
-            output = output[:, min_seq_len-1:, :]
-        if backprop:
-            if self._optimizer is not None:
-                self._optimizer.zero_grad()
-            loss = self._loss_function(output, train_set[:, min_seq_len+predict_len:])
-            loss.backward()
-            if self._optimizer is not None:
-                self._optimizer.step()
-        if self._store_losses:
-            self.train_losses.append(loss.item())
-        return output
-    
-    def test(self, test_set, min_seq_len, predict_len=1):
-        self.model.eval()
-        with torch.no_grad():
+        outputs = []
+        losses = []
+        for train_set in train_loader:
+            train_set = Variable(train_set.to(device)) # TODO globals are bad
+            train_set.requires_grad = True
             try:
-                output = self.model(test_set[:, :-predict_len, :], min_seq_len)
+                output = self.model(train_set[:, :-predict_len, :], min_seq_len)
             except TypeError:
                 print("This feature actually worked!")
-                output = self.model(test_set[:, :-predict_len, :])
+                output = self.model(train_set[:, :-predict_len, :])
                 output = output[:, min_seq_len-1:, :]
-            loss = self._loss_function(output, test_set[:, min_seq_len+predict_len:])
+            outputs.append(output)
+            if backprop:
+                if self._optimizer is not None:
+                    self._optimizer.zero_grad()
+                loss = self._loss_function(output, train_set[:, min_seq_len+predict_len:])
+                loss.backward()
+                if self._optimizer is not None:
+                    self._optimizer.step()
+                losses.append(loss.item())
+        output = torch.cat(outputs, dim=0)
         if self._store_losses:
-            self.test_losses.append(loss.item())
+            self.train_losses.append(sum(losses)/len(losses))
         return output
+    
+    def test(self, test_loader, min_seq_len, predict_len=1):
+        self.model.eval()
+        outputs = []
+        losses = []
+        with torch.no_grad():
+            for test_set in test_loader:
+                test_set = Variable(test_set.to(device)) # TODO globals are bad
+                test_set.requires_grad = True
+                try:
+                    output = self.model(test_set[:, :-predict_len, :], min_seq_len)
+                except TypeError:
+                    print("This feature actually worked!")
+                    output = self.model(test_set[:, :-predict_len, :])
+                    output = output[:, min_seq_len-1:, :]
+                loss = self._loss_function(output, test_set[:, min_seq_len+predict_len:])
+                outputs.append(output)
+                losses.append(loss.item())
+        if self._store_losses:
+            self.test_losses.append(sum(losses)/len(losses))
+        return torch.stack(outputs)
     
     def to(self, device):
         self.model.to(device)
@@ -142,13 +158,14 @@ class MultiModelHandler:
                 torch.save(network.model.state_dict(), filenames[idx])
 
 if __name__ == "__main__":
-    num_epochs = 25 # TODO
+    num_epochs = 100 # TODO
     learning_rate = 0.01
     batch_size = 1024
+    batches_at_once = 1
     positional_embedding_max_len = batch_size * 2
     
-    hidden_size = 256 # TODO
-    num_layers = 2 # TODO
+    hidden_size = 1024 # TODO
+    num_layers = 6 # TODO
     
     num_classes = 153
     
@@ -161,15 +178,8 @@ if __name__ == "__main__":
     
     print(networks.get_params_string())
     
-    train_data, test_data = load_data(("mocap/brownies1.c3d", "mocap/brownies3.c3d", "mocap/brownies4.c3d",
-                                       "mocap/eggs1.c3d", "mocap/eggs3.c3d", "mocap/eggs4.c3d", 
-                                       "mocap/pizza1.c3d", "mocap/pizza2.c3d", "mocap/pizza3.c3d", "mocap/pizza4.c3d", 
-                                       "mocap/salad1.c3d", "mocap/salad2.c3d", "mocap/salad3.c3d", "mocap/salad4.c3d", 
-                                       "mocap/sandwich1.c3d", "mocap/sandwich2.c3d", "mocap/sandwich3.c3d", "mocap/sandwich4.c3d", ), batch_size)
-    train_data.requires_grad = True
-    test_data.requires_grad = True
-    train_data.to(device)
-    test_data.to(device)
+    train_data = torch.utils.data.DataLoader(BatchManager("preprocessed_data", 0, 438), batches_at_once, True)
+    test_data = torch.utils.data.DataLoader(BatchManager("preprocessed_data", 438, 655), batches_at_once, True)
     
     print("Beginning training...")
     

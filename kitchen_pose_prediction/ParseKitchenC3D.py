@@ -126,3 +126,15 @@ def train_test_split(batches, train_qty = 0.67):
     test_data = batches[train_size:]
     
     return train_data, test_data
+
+if __name__ == "__main__":
+    batch_size = 1024
+    mocaps = ("mocap/brownies1.c3d", "mocap/brownies3.c3d", "mocap/brownies4.c3d",
+                                       "mocap/eggs1.c3d", "mocap/eggs3.c3d", "mocap/eggs4.c3d", 
+                                       "mocap/pizza1.c3d", "mocap/pizza2.c3d", "mocap/pizza3.c3d", "mocap/pizza4.c3d", 
+                                       "mocap/salad1.c3d", "mocap/salad2.c3d", "mocap/salad3.c3d", "mocap/salad4.c3d", 
+                                       "mocap/sandwich1.c3d", "mocap/sandwich2.c3d", "mocap/sandwich3.c3d", "mocap/sandwich4.c3d")
+    loaded_mocaps = load_and_prepare_mocaps(mocaps, batch_size)
+    print("Done loading!")
+    for num, batch in enumerate(loaded_mocaps):
+        torch.save(batch.clone(), "preprocessed_data/batch%s.pt" % str(num).zfill(4))
