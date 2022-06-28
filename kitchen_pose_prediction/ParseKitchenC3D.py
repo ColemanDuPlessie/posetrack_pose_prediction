@@ -103,8 +103,9 @@ def normalize_data(batched_data, return_scaler = False):
     second element is a sklearn.preprocessing.MinMaxScaler fit to the data.
     """
     sc = MinMaxScaler()
-    for batch in batched_data: sc.partial_fit(batch)
-    ans = torch.Tensor(np.array([sc.transform(batch) for batch in batched_data]))
+    cpu_batched_data = batched_data.to('cpu')
+    for batch in cpu_batched_data: sc.partial_fit(batch)
+    ans = torch.Tensor(np.array([sc.transform(batch) for batch in cpu_batched_data]))
     if return_scaler: return (ans, sc)
     else: return ans
 
