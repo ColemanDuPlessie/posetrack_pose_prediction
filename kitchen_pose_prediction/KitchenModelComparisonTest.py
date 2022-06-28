@@ -23,6 +23,8 @@ input_size = 153
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+torch.set_default_tensor_type('torch.cuda.FloatTensor' if torch.cuda.is_available() else 'torch.FloatTensor')
+
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad) # TODO this may not count certain types of nested layers
 
@@ -140,13 +142,13 @@ class MultiModelHandler:
                 torch.save(network.model.state_dict(), filenames[idx])
 
 if __name__ == "__main__":
-    num_epochs = 200 # TODO
+    num_epochs = 25 # TODO
     learning_rate = 0.01
     batch_size = 1024
     positional_embedding_max_len = batch_size * 2
     
-    hidden_size = 2048 # TODO
-    num_layers = 6 # TODO
+    hidden_size = 256 # TODO
+    num_layers = 2 # TODO
     
     num_classes = 153
     
