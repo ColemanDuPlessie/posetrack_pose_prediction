@@ -3,13 +3,11 @@
 This needs documentation at some point
 """
 
-import gc # This is an ugly hack
 import math
 import matplotlib.pyplot as plt
 import torch
 from BatchManager import BatchManager
 from torch.autograd import Variable
-from ParseKitchenC3D import load_and_prepare_mocaps, train_test_split
 from models.benchmarks import SimpleRepeater
 from models.LSTM import LSTMBenchmark
 from models.Transformer_encoder import TransformerEncoder
@@ -28,12 +26,6 @@ torch.set_default_tensor_type('torch.cuda.FloatTensor' if torch.cuda.is_availabl
 
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad) # TODO this may not count certain types of nested layers
-
-def load_data(filenames, batch_size = 1024, train_qty = 0.67):
-    """
-    Returns a tuple of the form (train_data, test_data)
-    """
-    return train_test_split(Variable(load_and_prepare_mocaps(filenames, batch_size)), train_qty)
 
 class ModelWrapper:
     """
@@ -106,6 +98,15 @@ class ModelWrapper:
     
     def get_losses_string(self):
         return "%s train loss: %1.6f %s test loss: %1.6f" % (self.name, self.train_losses[-1], self.name, self.test_losses[-1])
+    
+    def get_simple_losses_str(self):
+        """
+        This function should be used for saving parseable data to a .txt file
+        or similar. It should be called once after training. The function above
+        this one should be used for a more human-readable output and called
+        every epoch.
+        """
+        return ("%s train " + "%f " * len(self.train_losses) + "test " + "%f " * len(self.test_losses))[:-1] % (self.name, *self.train_losses, *self.test_losses)
 
 class MultiModelHandler:
     """
@@ -144,6 +145,18 @@ class MultiModelHandler:
             ans += "%s " % network.get_losses_string()
         return ans[:-1]
     
+    def get_simple_losses_str(self):
+        """
+        This function should be used for saving parseable data to a .txt file
+        or similar. It should be called once after training. The function above
+        this one should be used for a more human-readable output and called
+        every epoch.
+        """
+        ans = ""
+        for network in self.networks:
+            ans += "%s\n" % network.get_simple_losses_str()
+        return ans[:-1]
+    
     def plot_losses_over_time(self):
         for network in self.networks:
             plt.plot(network.train_losses, label = "Train (%s)" % network.name)
@@ -152,12 +165,17 @@ class MultiModelHandler:
         plt.yscale('log')
         plt.show()
     
+    def log_losses(self, log_file):
+        with open(log_file, "w") as writing:
+            writing.write(self.get_simple_losses_str())
+            
     def save_models(self, filenames):
         for idx, network in enumerate(self.networks):
             if filenames[idx] is not None:
                 torch.save(network.model.state_dict(), filenames[idx])
 
 if __name__ == "__main__":
+    print("Pytorch running on %s." % str(device))
     num_epochs = 100 # TODO
     learning_rate = 0.01
     batch_size = 1024
@@ -190,4 +208,5 @@ if __name__ == "__main__":
         print(networks.get_losses_string())
     
     networks.plot_losses_over_time()
+    networks.log_losses("losses.txt")
     networks.save_models(("TrainedKitchenTransformer.pt", "TrainedKitchenInformer.pt", "TrainedKitchenLSTM.pt", None))
