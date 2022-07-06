@@ -196,8 +196,8 @@ if __name__ == "__main__":
     
     print(networks.get_params_string())
     
-    train_data = torch.utils.data.DataLoader(BatchManager("preprocessed_data", 0, 438), batches_at_once, True)
-    test_data = torch.utils.data.DataLoader(BatchManager("preprocessed_data", 438, 655), batches_at_once, True)
+    train_data = torch.utils.data.DataLoader(BatchManager("preprocessed_data", 0, 438), batches_at_once, True, generator=torch.Generator(device=device))
+    test_data = torch.utils.data.DataLoader(BatchManager("preprocessed_data", 438, 655), batches_at_once, True, generator=torch.Generator(device=device))
     
     print("Beginning training...")
     
