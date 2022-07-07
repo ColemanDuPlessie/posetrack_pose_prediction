@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 """
 This needs documentation at some point
+
+TODO Our preprocessing is currently in the style of a pipeline. We can probably
+get significant speed improvements by combining or reordering some steps of
+the pipeline.
 """
 
 import math
@@ -57,16 +61,27 @@ def remove_bad_mocap(preprocessed, epsilon = 1e-8):
         remaining_preprocessed = remaining_preprocessed[:frame]
     ans.append(remaining_preprocessed)
     return ans
+
+def convert_mocap_to_velo(mocap):
+    """
+    Takes mocap, a motion capture (like the output of remove_bad_mocap)
+    and returns a np.array of the same shape, except with one fewer frame. The
+    output will be the derivative of the input.
+    """
+    ans = mocap.copy()
+    for frame_idx in range(1, len(ans)):
+        ans[frame_idx] -= ans[frame_idx-1]
+    return ans[1:]
     
 def convert_mocap_to_tensor(mocap):
     """
     This function will work on a motion capture in any stage of preprocessing.
-    It returns a 3 dimensional tensor, of dimension (n, 3m), where n is the
+    It returns a 2 dimensional tensor, of dimension (n, 3m), where n is the
     number of frames in the motion capture and m is the number of points.
     """
     return torch.Tensor(mocap).reshape(mocap.shape[0], -1)
     
-def load_and_preprocess_mocaps(files):
+def load_and_preprocess_mocaps(files, velo=False):
     """
     This function takes files (either a string or an iterable of strings
     corresponding to filenames) and outputs a list of Tensors. If a file
@@ -75,11 +90,12 @@ def load_and_preprocess_mocaps(files):
     means that you are likely to receive more tensors than the number of files
     you pass in).
     """
+    second_step_individual = (lambda x: convert_mocap_to_tensor(convert_mocap_to_velo(x))) if velo else convert_mocap_to_tensor
     if isinstance(files, str):
-        return [convert_mocap_to_tensor(mocap) for mocap in remove_bad_mocap(preprocess_mocap(load_mocap(files)))]
+        return [second_step_individual(mocap) for mocap in remove_bad_mocap(preprocess_mocap(load_mocap(files)))]
     ans = []
     for file in files:
-        ans.extend(load_and_preprocess_mocaps(file))
+        ans.extend(load_and_preprocess_mocaps(file, velo))
     return ans
 
 def batch_tensors(loaded_tensors, batch_size = 1024):
@@ -109,7 +125,7 @@ def normalize_data(batched_data, return_scaler = False):
     if return_scaler: return (ans, sc)
     else: return ans
 
-def load_and_prepare_mocaps(files, batch_size = 1024, return_scaler = False):
+def load_and_prepare_mocaps(files, batch_size = 1024, return_scaler = False, velo = False):
     """
     This is probably the function you want to use. It reads the .c3d file or
     files specified by the files parameter, preprocesses and cleans the data,
@@ -118,7 +134,7 @@ def load_and_prepare_mocaps(files, batch_size = 1024, return_scaler = False):
     function will return a tuple whose first element is the data and whose
     second element is a sklearn.preprocessing.MinMaxScaler fit to it).
     """
-    return normalize_data(batch_tensors(load_and_preprocess_mocaps(files), batch_size), return_scaler)
+    return normalize_data(batch_tensors(load_and_preprocess_mocaps(files, velo), batch_size), return_scaler)
 
 def train_test_split(batches, train_qty = 0.67):
     train_size = int(len(batches) * train_qty)
@@ -134,7 +150,7 @@ if __name__ == "__main__":
                                        "mocap/pizza1.c3d", "mocap/pizza2.c3d", "mocap/pizza3.c3d", "mocap/pizza4.c3d", 
                                        "mocap/salad1.c3d", "mocap/salad2.c3d", "mocap/salad3.c3d", "mocap/salad4.c3d", 
                                        "mocap/sandwich1.c3d", "mocap/sandwich2.c3d", "mocap/sandwich3.c3d", "mocap/sandwich4.c3d")
-    loaded_mocaps = load_and_prepare_mocaps(mocaps, batch_size)
+    loaded_mocaps = load_and_prepare_mocaps(mocaps, batch_size, velo=True)
     print("Done loading!")
     for num, batch in enumerate(loaded_mocaps):
-        torch.save(batch.clone(), "preprocessed_data/batch%s.pt" % str(num).zfill(4))
+        torch.save(batch.clone(), "preprocessed_data/velo_1024/batch%s.pt" % str(num).zfill(4))
