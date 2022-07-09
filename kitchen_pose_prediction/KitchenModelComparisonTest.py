@@ -177,7 +177,7 @@ class MultiModelHandler:
 if __name__ == "__main__":
     print("Pytorch running on %s." % str(device))
     num_epochs = 100 # TODO
-    learning_rate = 0.001
+    learning_rate = 0.00001
     batch_size = 1024
     batches_at_once = 1
     positional_embedding_max_len = batch_size * 2
