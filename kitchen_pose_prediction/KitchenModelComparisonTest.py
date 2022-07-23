@@ -3,6 +3,7 @@
 This needs documentation at some point
 """
 
+import os
 import math
 import matplotlib.pyplot as plt
 import torch
@@ -34,6 +35,8 @@ class ModelWrapper:
     
     def __init__(self, model, name, optimizer_class, loss_function, optimizer_kwargs={}, store_losses=True):
         self.model = model
+        if device == "cuda" and torch.cuda.device_count() > 1:
+            model = torch.nn.DataParallel(model)
         self.name = name
         self._optimizer = None if optimizer_class is None else optimizer_class(model.parameters(), **optimizer_kwargs)
         self._loss_function = loss_function
@@ -172,14 +175,14 @@ class MultiModelHandler:
     def save_models(self, filenames):
         for idx, network in enumerate(self.networks):
             if filenames[idx] is not None:
-                torch.save(network.model.state_dict(), filenames[idx])
+                torch.save(network.model.module.state_dict() if isinstance(network.model, torch.nn.DataParallel) else network.model.state_dict(), filenames[idx])
 
 if __name__ == "__main__":
     print("Pytorch running on %s." % str(device))
     num_epochs = 100 # TODO
     learning_rate = 0.00001
     batch_size = 1024
-    batches_at_once = 1
+    batches_at_once = max((1, torch.cuda.device_count() if device == "cuda" else 0))
     positional_embedding_max_len = batch_size * 2
     
     hidden_size = 1024 # TODO
@@ -196,8 +199,8 @@ if __name__ == "__main__":
     
     print(networks.get_params_string())
     
-    train_data = torch.utils.data.DataLoader(BatchManager("preprocessed_data/velo_1024", 0, 438), batches_at_once, True, generator=torch.Generator(device=device))
-    test_data = torch.utils.data.DataLoader(BatchManager("preprocessed_data/velo_1024", 438, 655), batches_at_once, True, generator=torch.Generator(device=device))
+    train_data = torch.utils.data.DataLoader(BatchManager("preprocessed_data/velo_1024", 0, 438), batches_at_once, True, generator=torch.Generator(device=device), num_workers=os.cpu_count()-1)
+    test_data = torch.utils.data.DataLoader(BatchManager("preprocessed_data/velo_1024", 438, 655), batches_at_once, True, generator=torch.Generator(device=device), num_workers=os.cpu_count()-1)
     
     print("Beginning training...")
     
