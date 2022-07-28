@@ -193,14 +193,14 @@ class MultiModelHandler:
 
 if __name__ == "__main__":
     print("Pytorch running on %s." % str(device))
-    num_epochs = 200 # TODO
+    num_epochs = 2000 # TODO
     learning_rate = 0.00005
     batch_size = 1024
     batches_at_once = 1
     positional_embedding_max_len = batch_size * 2
     
-    hidden_size = 512 # TODO
-    num_layers = 4 # TODO
+    hidden_size = 768 # TODO
+    num_layers = 5 # TODO
     
     num_classes = 1
     
@@ -213,11 +213,11 @@ if __name__ == "__main__":
     schedulers = []
     for model in networks.networks:
         if model._optimizer is None: continue
-        schedulers.append(torch.optim.lr_scheduler.ReduceLROnPlateau(model._optimizer, mode='min', factor=0.75, patience=8, cooldown=8, verbose=True, threshold=0.001, threshold_mode='rel'))
+        schedulers.append(torch.optim.lr_scheduler.ReduceLROnPlateau(model._optimizer, mode='min', factor=0.9, patience=8, cooldown=8, verbose=True, threshold=0.001, threshold_mode='rel'))
     print(networks.get_params_string())
     
-    train_data = torch.utils.data.DataLoader(SineWaveMaker(timesteps=10240, min_period=128, dimension=1), batches_at_once, True, generator=torch.Generator(device=device))
-    test_data = torch.utils.data.DataLoader(SineWaveMaker(timesteps=10240, min_period=128, dimension=1), batches_at_once, True, generator=torch.Generator(device=device))
+    train_data = torch.utils.data.DataLoader(SineWaveMaker(timesteps=4096, min_period=128, dimension=1), batches_at_once, True, generator=torch.Generator(device=device))
+    test_data = torch.utils.data.DataLoader(SineWaveMaker(timesteps=2048, min_period=128, dimension=1), batches_at_once, True, generator=torch.Generator(device=device))
     
     print("Beginning training...")
     

@@ -9,7 +9,7 @@ class LSTMBenchmark(nn.Module):
     def __init__(self, hidden_size=64, input_size=1, output_size=1, layers=4):
         super(LSTMBenchmark, self).__init__()
         assert layers >= 2
-        self.layer = nn.LSTM(input_size, hidden_size, layers, batch_first=True, dropout=0.1, proj_size=input_size)
+        self.layer = nn.LSTM(input_size, hidden_size, layers, batch_first=True, dropout=0.0, proj_size=input_size)
         
     def forward(self, y, min_seq_len=1):
         return self.layer(y)[0][:, min_seq_len:]
