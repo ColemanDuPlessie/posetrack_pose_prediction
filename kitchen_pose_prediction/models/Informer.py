@@ -63,7 +63,7 @@ class PositionalEncoding(nn.Module):
         return self.dropout(x)
 
 class FullAttention(nn.Module):
-    def __init__(self, mask_flag=True, factor=5, scale=None, attention_dropout=0.1, output_attention=False):
+    def __init__(self, mask_flag=True, factor=5, scale=None, attention_dropout=0.0, output_attention=False):
         super(FullAttention, self).__init__()
         self.scale = scale
         self.mask_flag = mask_flag
@@ -91,7 +91,7 @@ class FullAttention(nn.Module):
             return (V.contiguous(), None)
 
 class ProbAttention(nn.Module):
-    def __init__(self, mask_flag=True, factor=5, scale=None, attention_dropout=0.1, output_attention=False):
+    def __init__(self, mask_flag=True, factor=5, scale=None, attention_dropout=0.0, output_attention=False):
         super(ProbAttention, self).__init__()
         self.factor = factor
         self.scale = scale
@@ -238,7 +238,7 @@ class ConvLayer(nn.Module):
         return x
 
 class EncoderLayer(nn.Module):
-    def __init__(self, attention, d_model, d_ff=None, dropout=0.1, activation="relu"):
+    def __init__(self, attention, d_model, d_ff=None, dropout=0.0, activation="relu"):
         super(EncoderLayer, self).__init__()
         d_ff = d_ff or 4*d_model
         self.attention = attention
@@ -296,7 +296,7 @@ class Encoder(nn.Module):
 
 class DecoderLayer(nn.Module):
     def __init__(self, self_attention, cross_attention, d_model, d_ff=None,
-                 dropout=0.1, activation="relu"):
+                 dropout=0.0, activation="relu"):
         super(DecoderLayer, self).__init__()
         d_ff = d_ff or 4*d_model
         self.self_attention = self_attention
@@ -353,7 +353,7 @@ class Informer(nn.Module):
         self.output_attention = output_attention
 
         # Encoding
-        self.positional_encoding = PositionalEncoding(d_model, max_len = positional_embedding_max_len)
+        self.positional_encoding = PositionalEncoding(d_model, max_len = positional_embedding_max_len, dropout = 0.0)
         self.embedding = nn.Linear(enc_in, d_model)
         # Attention
         Attn = ProbAttention

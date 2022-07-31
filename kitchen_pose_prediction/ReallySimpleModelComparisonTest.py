@@ -7,7 +7,6 @@ import os
 import math
 import matplotlib.pyplot as plt
 import torch
-from BatchManager import BatchManager
 from torch.autograd import Variable
 from models.benchmarks import SimpleRepeater
 from models.LSTM import LSTMBenchmark
@@ -16,10 +15,25 @@ from models.Informer import Informer
 # TODO from models.Pyraformer.Pyraformer_SS import Model as Pyraformer
 # TODO from models.Pyraformer.Pyraformer_SS import pyraformer_params
 
+class SineWaveMaker(torch.utils.data.Dataset):
+  def __init__(self, timesteps=20480, min_period=512, dimension=6, batch_size=1024):
+      assert timesteps % batch_size == 0
+      self.timesteps = timesteps
+      self.min_period = min_period
+      self.dimension=dimension
+      self.batch_size = batch_size
+
+  def __len__(self):
+      return self.timesteps//self.batch_size
+
+  def __getitem__(self, batch):
+      assert batch < self.timesteps//self.batch_size
+      return torch.tensor([[0.5+math.sin(index*2*math.pi/self.min_period/n)/2 for n in range(1, self.dimension+1)] for index in range(batch*self.batch_size, (batch+1)*self.batch_size)])
+
 min_seq_length = 100
 predict_length = 1
 
-input_size = 153
+input_size = 1
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -179,28 +193,31 @@ class MultiModelHandler:
 
 if __name__ == "__main__":
     print("Pytorch running on %s." % str(device))
-    num_epochs = 100 # TODO
-    learning_rate = 0.00001
+    num_epochs = 2000 # TODO
+    learning_rate = 0.00005
     batch_size = 1024
-    batches_at_once = max((1, torch.cuda.device_count() if device == "cuda" else 0))
+    batches_at_once = 1
     positional_embedding_max_len = batch_size * 2
     
-    hidden_size = 1024 # TODO
-    num_layers = 6 # TODO
+    hidden_size = 768 # TODO
+    num_layers = 5 # TODO
     
-    num_classes = 153
+    num_classes = 1
     
     networks = MultiModelHandler(device, ModelWrapper(TransformerEncoder(hidden_size, 8, input_size, num_layers, positional_embedding_max_len), "Transformer (encoder only)", torch.optim.Adam, torch.nn.MSELoss(), {"lr" : learning_rate}),
                 ModelWrapper(Informer(input_size, input_size, input_size, 1, d_model = hidden_size, n_heads = 8,
                                          e_layers = math.ceil(num_layers/2), d_layers = math.floor(num_layers/2),
                                          d_ff = hidden_size, activation = "relu", positional_embedding_max_len = positional_embedding_max_len), "Informer", torch.optim.Adam, torch.nn.MSELoss(), {"lr" : learning_rate}),
-                ModelWrapper(LSTMBenchmark(hidden_size, input_size, num_classes, num_layers), "LSTM", torch.optim.Adam, torch.nn.MSELoss(), {"lr" : learning_rate}),
+                ModelWrapper(LSTMBenchmark(hidden_size, input_size, num_classes, num_layers), "LSTM", torch.optim.Adam, torch.nn.MSELoss(), {"lr" : learning_rate*50}),
                 ModelWrapper(SimpleRepeater(input_size), "Benchmark", None, torch.nn.MSELoss()))
-    
+    schedulers = []
+    for model in networks.networks:
+        if model._optimizer is None: continue
+        schedulers.append(torch.optim.lr_scheduler.ReduceLROnPlateau(model._optimizer, mode='min', factor=0.9, patience=8, cooldown=8, verbose=True, threshold=0.001, threshold_mode='rel'))
     print(networks.get_params_string())
     
-    train_data = torch.utils.data.DataLoader(BatchManager("preprocessed_data/velo_1024", 0, 438), batches_at_once, True, generator=torch.Generator(device=device), num_workers=os.cpu_count()-1)
-    test_data = torch.utils.data.DataLoader(BatchManager("preprocessed_data/velo_1024", 438, 655), batches_at_once, True, generator=torch.Generator(device=device), num_workers=os.cpu_count()-1)
+    train_data = torch.utils.data.DataLoader(SineWaveMaker(timesteps=4096, min_period=128, dimension=1), batches_at_once, True, generator=torch.Generator(device=device))
+    test_data = torch.utils.data.DataLoader(SineWaveMaker(timesteps=2048, min_period=128, dimension=1), batches_at_once, True, generator=torch.Generator(device=device))
     
     print("Beginning training...")
     
@@ -208,6 +225,11 @@ if __name__ == "__main__":
     for epoch in range(num_epochs):
         networks.train(train_data, min_seq_length)
         networks.test(test_data, min_seq_length)
+        sched_idx = 0
+        for model in networks.networks:
+            if model._optimizer is None: continue
+            schedulers[sched_idx].step(model.test_losses[-1])
+            sched_idx += 1
         print(networks.get_losses_string())
     
     networks.plot_losses_over_time()
