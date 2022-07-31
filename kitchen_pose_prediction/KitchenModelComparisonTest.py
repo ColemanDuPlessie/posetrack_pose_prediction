@@ -19,7 +19,7 @@ from models.Informer import Informer
 min_seq_length = 100
 predict_length = 1
 
-input_size = 6
+input_size = 153
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -50,7 +50,7 @@ class ModelWrapper:
         outputs = []
         losses = []
         for train_set in train_loader:
-            train_set = Variable(train_set.to(device))[:,:,:6] # TODO globals are bad
+            train_set = Variable(train_set.to(device)) # TODO globals are bad
             train_set.requires_grad = True
             try:
                 output = self.model(train_set[:, :-predict_len, :], min_seq_len)
@@ -78,7 +78,7 @@ class ModelWrapper:
         losses = []
         with torch.no_grad():
             for test_set in test_loader:
-                test_set = Variable(test_set.to(device))[:,:,:6] # TODO globals are bad
+                test_set = Variable(test_set.to(device)) # TODO globals are bad
                 test_set.requires_grad = True
                 try:
                     output = self.model(test_set[:, :-predict_len, :], min_seq_len)
@@ -188,7 +188,7 @@ if __name__ == "__main__":
     hidden_size = 1024 # TODO
     num_layers = 6 # TODO
     
-    num_classes = 6
+    num_classes = 153
     
     networks = MultiModelHandler(device, ModelWrapper(TransformerEncoder(hidden_size, 8, input_size, num_layers, positional_embedding_max_len), "Transformer (encoder only)", torch.optim.Adam, torch.nn.MSELoss(), {"lr" : learning_rate}),
                 ModelWrapper(Informer(input_size, input_size, input_size, 1, d_model = hidden_size, n_heads = 8,
