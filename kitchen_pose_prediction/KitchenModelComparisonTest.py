@@ -180,7 +180,7 @@ class MultiModelHandler:
 if __name__ == "__main__":
     print("Pytorch running on %s." % str(device))
     num_epochs = 100 # TODO
-    learning_rate = 0.00001
+    learning_rate = 0.00003
     batch_size = 1024
     batches_at_once = max((1, torch.cuda.device_count() if device == "cuda" else 0))
     positional_embedding_max_len = batch_size * 2
@@ -205,6 +205,7 @@ if __name__ == "__main__":
     print("Beginning training...")
     
     # Train the model
+    networks.to(device)
     for epoch in range(num_epochs):
         networks.train(train_data, min_seq_length)
         networks.test(test_data, min_seq_length)
