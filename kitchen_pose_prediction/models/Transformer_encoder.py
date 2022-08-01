@@ -45,13 +45,13 @@ class PositionalEncoding(nn.Module):
 
 class TransformerEncoder(nn.Module):
     
-    def __init__(self, hidden_size = 64, heads = 4, frame_dimension = 1, layers = 2, positional_embedding_max_len = 2048):
+    def __init__(self, hidden_size = 64, heads = 4, frame_dimension = 1, layers = 2, positional_embedding_max_len = 2048, dropout=0.0):
         super(TransformerEncoder, self).__init__()
         self.hidden_size = hidden_size
         self.input_size = frame_dimension
         self.encoding = nn.Linear(frame_dimension, hidden_size)
-        self.positional_encoding = PositionalEncoding(hidden_size, max_len = positional_embedding_max_len, dropout = 0.0)
-        self.transformer = nn.TransformerEncoder(nn.TransformerEncoderLayer(hidden_size, heads, hidden_size, batch_first=True, dropout = 0.0), layers)
+        self.positional_encoding = PositionalEncoding(hidden_size, max_len = positional_embedding_max_len, dropout = dropout)
+        self.transformer = nn.TransformerEncoder(nn.TransformerEncoderLayer(hidden_size, heads, hidden_size, batch_first=True, dropout = dropout), layers)
         
     def forward(self, y, pre_output_len=1):
         frames = self.positional_encoding(self.encoding(y))

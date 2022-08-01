@@ -353,7 +353,7 @@ class Informer(nn.Module):
         self.output_attention = output_attention
 
         # Encoding
-        self.positional_encoding = PositionalEncoding(d_model, max_len = positional_embedding_max_len, dropout = 0.0)
+        self.positional_encoding = PositionalEncoding(d_model, max_len = positional_embedding_max_len, dropout = dropout)
         self.embedding = nn.Linear(enc_in, d_model)
         # Attention
         Attn = ProbAttention
