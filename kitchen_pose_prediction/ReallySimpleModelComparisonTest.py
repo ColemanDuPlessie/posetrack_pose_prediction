@@ -204,12 +204,24 @@ if __name__ == "__main__":
     
     num_classes = 1
     
-    networks = MultiModelHandler(device, ModelWrapper(TransformerEncoder(hidden_size, 8, input_size, num_layers, positional_embedding_max_len), "Transformer (encoder only)", torch.optim.Adam, torch.nn.MSELoss(), {"lr" : learning_rate}),
-                ModelWrapper(Informer(input_size, input_size, input_size, 1, d_model = hidden_size, n_heads = 8,
-                                         e_layers = math.ceil(num_layers/2), d_layers = math.floor(num_layers/2),
-                                         d_ff = hidden_size, activation = "relu", positional_embedding_max_len = positional_embedding_max_len), "Informer", torch.optim.Adam, torch.nn.MSELoss(), {"lr" : learning_rate}),
-                ModelWrapper(LSTMBenchmark(hidden_size, input_size, num_classes, num_layers), "LSTM", torch.optim.Adam, torch.nn.MSELoss(), {"lr" : learning_rate*50}),
-                ModelWrapper(SimpleRepeater(input_size), "Benchmark", None, torch.nn.MSELoss()))
+    
+    networks = MultiModelHandler(device, ModelWrapper(TransformerEncoder(hidden_size, 8, input_size, num_layers, positional_embedding_max_len, dropout=0.0), "Transformer (0% dropout)", torch.optim.Adam, torch.nn.MSELoss(), {"lr" : learning_rate}),
+                     ModelWrapper(TransformerEncoder(hidden_size, 8, input_size, num_layers, positional_embedding_max_len, dropout=0.001), "Transformer (0.1% dropout)", torch.optim.Adam, torch.nn.MSELoss(), {"lr" : learning_rate}),
+                     ModelWrapper(TransformerEncoder(hidden_size, 8, input_size, num_layers, positional_embedding_max_len, dropout=0.01), "Transformer (1% dropout)", torch.optim.Adam, torch.nn.MSELoss(), {"lr" : learning_rate}),
+                     ModelWrapper(TransformerEncoder(hidden_size, 8, input_size, num_layers, positional_embedding_max_len, dropout=0.1), "Transformer (10% dropout)", torch.optim.Adam, torch.nn.MSELoss(), {"lr" : learning_rate}),
+                     ModelWrapper(LSTMBenchmark(hidden_size, input_size, num_classes, num_layers, dropout=0.0), "LSTM (0% dropout)", torch.optim.Adam, torch.nn.MSELoss(), {"lr" : learning_rate*50}),
+                     ModelWrapper(LSTMBenchmark(hidden_size, input_size, num_classes, num_layers, dropout=0.001), "LSTM (0.1% dropout)", torch.optim.Adam, torch.nn.MSELoss(), {"lr" : learning_rate*50}),
+                     ModelWrapper(LSTMBenchmark(hidden_size, input_size, num_classes, num_layers, dropout=0.01), "LSTM (1% dropout)", torch.optim.Adam, torch.nn.MSELoss(), {"lr" : learning_rate*50}),
+                     ModelWrapper(LSTMBenchmark(hidden_size, input_size, num_classes, num_layers, dropout=0.1), "LSTM (10% dropout)", torch.optim.Adam, torch.nn.MSELoss(), {"lr" : learning_rate*50}),
+                     ModelWrapper(SimpleRepeater(input_size), "Benchmark", None, torch.nn.MSELoss()))
+# =============================================================================
+#     networks = MultiModelHandler(device, ModelWrapper(TransformerEncoder(hidden_size, 8, input_size, num_layers, positional_embedding_max_len), "Transformer (encoder only)", torch.optim.Adam, torch.nn.MSELoss(), {"lr" : learning_rate}),
+#                 ModelWrapper(Informer(input_size, input_size, input_size, 1, d_model = hidden_size, n_heads = 8,
+#                                          e_layers = math.ceil(num_layers/2), d_layers = math.floor(num_layers/2),
+#                                          d_ff = hidden_size, activation = "relu", positional_embedding_max_len = positional_embedding_max_len), "Informer", torch.optim.Adam, torch.nn.MSELoss(), {"lr" : learning_rate}),
+#                 ModelWrapper(LSTMBenchmark(hidden_size, input_size, num_classes, num_layers), "LSTM", torch.optim.Adam, torch.nn.MSELoss(), {"lr" : learning_rate*50}),
+#                 ModelWrapper(SimpleRepeater(input_size), "Benchmark", None, torch.nn.MSELoss()))
+# =============================================================================
     schedulers = []
     for model in networks.networks:
         if model._optimizer is None: continue
@@ -234,4 +246,4 @@ if __name__ == "__main__":
     
     networks.plot_losses_over_time()
     networks.log_losses("losses.txt")
-    networks.save_models(("TrainedKitchenTransformer.pt", "TrainedKitchenInformer.pt", "TrainedKitchenLSTM.pt", None))
+    # networks.save_models(("TrainedKitchenTransformer.pt", "TrainedKitchenInformer.pt", "TrainedKitchenLSTM.pt", None))
