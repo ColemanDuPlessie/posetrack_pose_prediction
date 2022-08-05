@@ -202,8 +202,8 @@ if __name__ == "__main__":
         schedulers.append(torch.optim.lr_scheduler.ReduceLROnPlateau(model._optimizer, mode='min', factor=0.9, patience=6, cooldown=6, verbose=True, threshold=0.001, threshold_mode='rel'))
     print(networks.get_params_string())
     
-    train_data = torch.utils.data.DataLoader(BatchManager("preprocessed_data/pos_1024", 0, 438), batches_at_once, True, generator=torch.Generator(device=device), num_workers=os.cpu_count()-1)
-    test_data = torch.utils.data.DataLoader(BatchManager("preprocessed_data/pos_1024", 438, 655), batches_at_once, True, generator=torch.Generator(device=device), num_workers=os.cpu_count()-1)
+    train_data = torch.utils.data.DataLoader(BatchManager("preprocessed_data/shuffled_velo_1024", 0, 438), batches_at_once, True, generator=torch.Generator(device=device), num_workers=os.cpu_count()-1)
+    test_data = torch.utils.data.DataLoader(BatchManager("preprocessed_data/shuffled_velo_1024", 438, 655), batches_at_once, True, generator=torch.Generator(device=device), num_workers=os.cpu_count()-1)
     
     print("Beginning training...")
     
