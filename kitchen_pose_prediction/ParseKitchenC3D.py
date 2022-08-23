@@ -150,9 +150,9 @@ if __name__ == "__main__":
                                        "mocap/pizza1.c3d", "mocap/pizza2.c3d", "mocap/pizza3.c3d", "mocap/pizza4.c3d", 
                                        "mocap/salad1.c3d", "mocap/salad2.c3d", "mocap/salad3.c3d", "mocap/salad4.c3d", 
                                        "mocap/sandwich1.c3d", "mocap/sandwich2.c3d", "mocap/sandwich3.c3d", "mocap/sandwich4.c3d")
-    loaded_mocaps = load_and_prepare_mocaps(mocaps, batch_size, velo=True)
+    loaded_mocaps = load_and_prepare_mocaps(mocaps, batch_size, velo=False)
     print("Done loading!")
     loaded_mocaps = loaded_mocaps[torch.randperm(loaded_mocaps.shape[0])]
     print("Done shuffling!")
     for num, batch in enumerate(loaded_mocaps):
-        torch.save(batch.clone(), "preprocessed_data/shuffled_velo_1024/batch%s.pt" % str(num).zfill(4))
+        torch.save(batch.clone(), "preprocessed_data/shuffled_pos_1024/batch%s.pt" % str(num).zfill(4))
