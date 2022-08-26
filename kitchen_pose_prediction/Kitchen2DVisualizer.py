@@ -20,7 +20,6 @@ models = {TwoLayerLSTM(100, input_size) : (min_pred_len,),
           TransformerEncoder(256, 8, input_size, 2, 2048) : (min_pred_len,),
           Informer(input_size, input_size, input_size, 1, d_model = 256, n_heads = 8, e_layers = 1, d_layers = 1, d_ff = 256, activation = "relu", device = torch.device("cpu"), positional_embedding_max_len = 2048) : (min_pred_len, 1)}
 
-file_to_view = "mocap/brownies1.c3d"
 pretrained_model_to_view = "TrainedKitchenTransformer.pt"
 
 root = tk.Tk()
