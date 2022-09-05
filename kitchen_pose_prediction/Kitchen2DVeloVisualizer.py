@@ -36,7 +36,7 @@ models = {LSTMBenchmark(hidden_size, input_size, input_size, num_layers) : (min_
                                    d_ff = hidden_size, activation = "relu", positional_embedding_max_len = max_pred_len*2) : (min_pred_len, 1)}
 
 pretrained_model_to_view = "TrainedKitchenTransformer.pt"
-dataset_to_view = "shuffled_velo_1024"
+dataset_to_view = "30fps_velo_1024"
 
 root = tk.Tk()
 root.title("Kitchen Prediction Visualizer (Velo)")
