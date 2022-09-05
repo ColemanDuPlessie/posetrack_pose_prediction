@@ -160,3 +160,5 @@ cython_debug/
 posetrack_data/*
 kitchen_pose_prediction/mocap/brownies_.trial
 kitchen_pose_prediction/mocap/brownies_.V
+kitchen_pose_prediction/Old Pretraineds/*
+kitchen_pose_prediction/TrainedKitchen*.pt

@@ -158,3 +158,7 @@ cython_debug/
 # End of https://www.toptal.com/developers/gitignore/api/python
  
 posetrack_data/*
+kitchen_pose_prediction/mocap/brownies_.trial
+kitchen_pose_prediction/mocap/brownies_.V
+kitchen_pose_prediction/Old Pretraineds/*
+kitchen_pose_prediction/TrainedKitchen*

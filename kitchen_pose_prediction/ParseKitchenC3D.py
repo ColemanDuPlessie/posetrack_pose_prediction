@@ -62,6 +62,25 @@ def remove_bad_mocap(preprocessed, epsilon = 1e-8):
     ans.append(remaining_preprocessed)
     return ans
 
+def set_framerate(mocap, framerate):
+    """
+    Takes mocap, a 120fps motion capture, preprocessed with remove_bad_mocap,
+    and returns the same motion capture at the specified framerate. As an
+    example, if the framerate was 30, this function will return a list of
+    np.arrays in the following order:
+    0, 4, 8, 12...
+    1, 5, 9, 13...
+    2, 6...
+    3, 7...
+    """
+    assert 120 % framerate == 0
+    dist = 120 // framerate
+    ans = []
+    for video in mocap:
+        for i in range(dist):
+            ans.append(video[i::dist])
+    return ans
+
 def convert_mocap_to_velo(mocap):
     """
     Takes mocap, a motion capture (like the output of remove_bad_mocap)
@@ -70,7 +89,7 @@ def convert_mocap_to_velo(mocap):
     """
     ans = mocap.copy()
     for frame_idx in range(1, len(ans)):
-        ans[frame_idx] -= ans[frame_idx-1]
+        ans[frame_idx] -= mocap[frame_idx-1]
     return ans[1:]
     
 def convert_mocap_to_tensor(mocap):
@@ -81,7 +100,7 @@ def convert_mocap_to_tensor(mocap):
     """
     return torch.Tensor(mocap).reshape(mocap.shape[0], -1)
     
-def load_and_preprocess_mocaps(files, velo=False):
+def load_and_preprocess_mocaps(files, velo=False, framerate=120):
     """
     This function takes files (either a string or an iterable of strings
     corresponding to filenames) and outputs a list of Tensors. If a file
@@ -92,10 +111,10 @@ def load_and_preprocess_mocaps(files, velo=False):
     """
     second_step_individual = (lambda x: convert_mocap_to_tensor(convert_mocap_to_velo(x))) if velo else convert_mocap_to_tensor
     if isinstance(files, str):
-        return [second_step_individual(mocap) for mocap in remove_bad_mocap(preprocess_mocap(load_mocap(files)))]
+        return [second_step_individual(mocap) for mocap in set_framerate(remove_bad_mocap(preprocess_mocap(load_mocap(files))), framerate)]
     ans = []
     for file in files:
-        ans.extend(load_and_preprocess_mocaps(file, velo))
+        ans.extend(load_and_preprocess_mocaps(file, velo, framerate))
     return ans
 
 def batch_tensors(loaded_tensors, batch_size = 1024):
@@ -125,7 +144,7 @@ def normalize_data(batched_data, return_scaler = False):
     if return_scaler: return (ans, sc)
     else: return ans
 
-def load_and_prepare_mocaps(files, batch_size = 1024, return_scaler = False, velo = False):
+def load_and_prepare_mocaps(files, batch_size = 1024, return_scaler = False, velo = False, framerate = 120):
     """
     This is probably the function you want to use. It reads the .c3d file or
     files specified by the files parameter, preprocesses and cleans the data,
@@ -134,7 +153,7 @@ def load_and_prepare_mocaps(files, batch_size = 1024, return_scaler = False, vel
     function will return a tuple whose first element is the data and whose
     second element is a sklearn.preprocessing.MinMaxScaler fit to it).
     """
-    return normalize_data(batch_tensors(load_and_preprocess_mocaps(files, velo), batch_size), return_scaler)
+    return normalize_data(batch_tensors(load_and_preprocess_mocaps(files, velo, framerate), batch_size), return_scaler)
 
 def train_test_split(batches, train_qty = 0.67):
     train_size = int(len(batches) * train_qty)
@@ -155,4 +174,4 @@ if __name__ == "__main__":
     loaded_mocaps = loaded_mocaps[torch.randperm(loaded_mocaps.shape[0])]
     print("Done shuffling!")
     for num, batch in enumerate(loaded_mocaps):
-        torch.save(batch.clone(), "preprocessed_data/60fps_velo_1024/batch%s.pt" % str(num).zfill(4))
+        torch.save(batch.clone(), "preprocessed_data/shuffled_velo_1024/batch%s.pt" % str(num).zfill(4))
