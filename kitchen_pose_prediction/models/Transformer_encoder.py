@@ -60,3 +60,10 @@ class TransformerEncoder(nn.Module):
         ans = torch.matmul(ans-self.encoding.bias, torch.linalg.pinv(self.encoding.weight).t()) # This line effectively runs the self.encoding layer in reverse # TODO It may or may not be making this model significantly worse...
 
         return ans
+    
+class TransformerEncoderMultistep(TransformerEncoder):
+    def __init__(self, hidden_size = 64, heads = 4, frame_dimension = 1, layers = 2, positional_embedding_max_len = 2048, dropout=0.0):
+        super(TransformerEncoderMultistep, self).__init__(hidden_size, heads, frame_dimension, layers, positional_embedding_max_len, dropout)
+    
+    def forward_multistep(self, y, pre_output_len=1, steps = 2):
+        pass # TODO        
