@@ -35,8 +35,8 @@ models = {LSTMBenchmark(hidden_size, input_size, input_size, num_layers) : (min_
                                    e_layers = math.ceil(num_layers/2), d_layers = math.floor(num_layers/2),
                                    d_ff = hidden_size, activation = "relu", positional_embedding_max_len = max_pred_len*2) : (min_pred_len, 1)}
 
-pretrained_model_to_view = "TrainedKitchenTransformer2.pt"
-dataset_to_view = "shuffled_velo_1024"
+pretrained_model_to_view = "TrainedKitchenTransformer.pt"
+dataset_to_view = "30fps_velo_1024"
 
 root = tk.Tk()
 root.title("Kitchen Prediction Visualizer (Velo)")
@@ -56,15 +56,12 @@ projection = (0, 2) # 0 = x, 1 = y, 2 = z
 
 canvas = tk.Canvas(root, bg = "white", height = height, width = width)
 
-
 def load_data():
     if randomize_batch_series:
         start = random.randint(0, 655-batches_to_use)
     else: 
         start = 0
     return torch.utils.data.DataLoader(BatchManager("preprocessed_data/" + dataset_to_view, start, start+batches_to_use))
-
-
 
 def draw_arrow(origin, tip, color):
     """
@@ -78,7 +75,6 @@ def draw_arrow(origin, tip, color):
     tip_y = height-float(tip[1])-offset_y
     canvas.create_line(origin_x, origin_y, tip_x, tip_y, fill = color, width = 2)
 
-
 class Person:
     
     def __init__(self, frame_generator, color = "red"):
@@ -91,8 +87,7 @@ class Person:
         for point in range(0, len(frame), 3):
             origin = grid[point//3]
             draw_arrow(origin, (origin[0]+frame[point+projection[0]]*scale, origin[1]+frame[point+projection[1]]*scale), self.color)
-
-
+         
 sc = MinMaxScaler()
 data = load_data() # TODO get scaler to inverse-transform
 state_dict = torch.load(pretrained_model_to_view, map_location=device)
@@ -117,7 +112,6 @@ ground_truth = Person(ground_truth_generator, "green")
 prediction = Person(prediction_generator, "red")
 
 rendering = True
-
 
 def render(delay = None):
     global rendering
