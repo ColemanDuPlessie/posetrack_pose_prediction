@@ -7,13 +7,10 @@ import tkinter as tk
 import torch
 from torch.autograd import Variable
 from sklearn.preprocessing import MinMaxScaler
-from ParseKitchenC3D import preprocess_mocap, load_mocap
-from kitchen_pose_prediction.ReallySimpleModelComparisonTest import SineWaveMaker
+from ParseKitchenC3D import load_and_preprocess_mocap
 from models.LSTM import TwoLayerLSTM
 from models.Transformer_encoder import TransformerEncoder
 from models.Informer import Informer
-
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 input_size = 198 - 14*3 # TODO: This is an ugly hack
 min_pred_len = 128
@@ -69,7 +66,7 @@ class Person:
             draw_point(frame[point+projection[0]], frame[point+projection[1]], self.color)
          
 sc = MinMaxScaler()
-data = torch.utils.data.DataLoader(SineWaveMaker(timesteps=4096, min_period=128, dimension=1), 1, True, generator=torch.Generator(device=device))
+data = load_data(file_to_view)
 data = sc.fit_transform(data)
 state_dict = torch.load(pretrained_model_to_view)
 for model_type in models:

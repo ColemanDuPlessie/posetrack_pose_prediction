@@ -199,8 +199,8 @@ if __name__ == "__main__":
     batches_at_once = 1
     positional_embedding_max_len = batch_size * 2
     
-    hidden_size = 1024 # TODO
-    num_layers = 6 # TODO
+    hidden_size = 768 # TODO
+    num_layers = 5 # TODO
     
     num_classes = 1
     
