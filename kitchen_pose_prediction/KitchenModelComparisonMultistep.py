@@ -4,20 +4,16 @@ This needs documentation at some point
 """
 
 import os
-import math
 import matplotlib.pyplot as plt
 import torch
 from BatchManager import BatchManager
 from torch.autograd import Variable
 from models.benchmarks import SimpleRepeater
-from models.LSTM import LSTMBenchmark
-from models.Transformer_encoder import TransformerEncoder
-from models.Informer import Informer
-# TODO from models.Pyraformer.Pyraformer_SS import Model as Pyraformer
-# TODO from models.Pyraformer.Pyraformer_SS import pyraformer_params
+from models.LSTM import LSTMMultistep
+from models.Transformer_encoder import TransformerEncoderMultistep
 
 min_seq_length = 100
-predict_length = 1
+predict_length = 3
 predict_freq = 10
 
 input_size = 153
@@ -45,7 +41,7 @@ class ModelWrapper:
         if store_losses:
             self.train_losses = []
             self.test_losses = []
-            self.multistep_test_losses = {}
+            self.multistep_test_losses = []
     
     def train(self, train_loader, min_seq_len, predict_len=1, backprop=True):
         self.model.train()
@@ -106,7 +102,7 @@ class ModelWrapper:
         return "%s has %d parameters." % (self.name, count_parameters(self.model))
     
     def get_losses_string(self):
-        return "%s train loss: %1.6f %s test loss: %1.6f" % (self.name, self.train_losses[-1], self.name, self.test_losses[-1])
+        return "%s train loss: %1.6f %s test loss: %1.6f, %s most recent multistep test loss: %1.6f" % (self.name, self.train_losses[-1], self.name, self.test_losses[-1], self.name, self.multistep_test_losses[-1])
     
     def get_simple_losses_str(self):
         """
@@ -115,7 +111,7 @@ class ModelWrapper:
         this one should be used for a more human-readable output and called
         every epoch.
         """
-        return ("%s train " + "%f " * len(self.train_losses) + "test " + "%f " * len(self.test_losses))[:-1] % (self.name, *self.train_losses, *self.test_losses)
+        return ("%s train " + "%f " * len(self.train_losses) + "test " + "%f " * len(self.test_losses) + "multistep " + "%f " * len(self.multistep_test_losses))[:-1] % (self.name, *self.train_losses, *self.test_losses, *self.multistep_test_losses)
 
 class MultiModelHandler:
     """
@@ -198,7 +194,9 @@ if __name__ == "__main__":
     
     num_classes = 153
     
-    networks = MultiModelHandler(device, ModelWrapper(LSTMBenchmark(hidden_size, input_size, num_classes, num_layers), "LSTM", torch.optim.Adam, torch.nn.MSELoss(), {"lr" : learning_rate*50}),
+    networks = MultiModelHandler(device,
+                ModelWrapper(TransformerEncoderMultistep(hidden_size, 8, input_size, num_layers, positional_embedding_max_len), "Transformer (encoder only)", torch.optim.Adam, torch.nn.MSELoss(), {"lr" : learning_rate}),
+                ModelWrapper(LSTMMultistep(hidden_size, input_size, num_classes, num_layers), "LSTM", torch.optim.Adam, torch.nn.MSELoss(), {"lr" : learning_rate*50}),
                 ModelWrapper(SimpleRepeater(input_size), "Benchmark", None, torch.nn.MSELoss()))
     schedulers = []
     for model in networks.networks:
@@ -220,9 +218,9 @@ if __name__ == "__main__":
             if model._optimizer is None: continue
             schedulers[sched_idx].step(model.test_losses[-1])
             sched_idx += 1
-        print(networks.get_losses_string())
         if epoch % predict_freq == 0:
             networks.test(test_data, min_seq_length, predict_length)
+        print(networks.get_losses_string())
     
     networks.plot_losses_over_time()
     networks.log_losses("losses.txt")
