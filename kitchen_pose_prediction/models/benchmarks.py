@@ -16,3 +16,6 @@ class SimpleRepeater(nn.Module):
         
     def forward(self, y, pre_output_len=1):
         return y[:, pre_output_len:, :]
+    
+    def forward_multistep(self, y, pre_output_len=1, steps=1):
+        return self.forward(y, pre_output_len)
