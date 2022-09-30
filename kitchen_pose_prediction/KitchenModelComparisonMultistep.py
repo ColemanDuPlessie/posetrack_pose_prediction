@@ -162,9 +162,10 @@ class MultiModelHandler:
             ans += "%s\n" % network.get_simple_losses_str()
         return ans[:-1]
     
-    def plot_losses_over_time(self):
+    def plot_losses_over_time(self, multisteps_per_step = None):
         for network in self.networks:
-            multisteps_per_step = len(network.test_losses)//len(network.multistep_test_losses)
+            if multisteps_per_step == None:
+                multisteps_per_step = len(network.test_losses)//len(network.multistep_test_losses)
             plt.plot(network.train_losses, label = "Train (%s)" % network.name)
             plt.plot(network.test_losses, label = "Test (%s)" % network.name)
             plt.plot(range(0, len(network.test_losses), multisteps_per_step), network.multistep_test_losses, label = "Multistep Test (%s)" % network.name)
@@ -222,6 +223,6 @@ if __name__ == "__main__":
             networks.test(test_data, min_seq_length, predict_length)
         print(networks.get_losses_string())
     
-    networks.plot_losses_over_time()
+    networks.plot_losses_over_time(predict_freq)
     networks.log_losses("losses.txt")
     networks.save_models(("TrainedKitchenTransformer.pt", "TrainedKitchenInformer.pt", "TrainedKitchenLSTM.pt", None))

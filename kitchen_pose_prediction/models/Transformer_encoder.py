@@ -69,6 +69,5 @@ class TransformerEncoderMultistep(TransformerEncoder):
         ans = self.forward(y, pre_output_len)
         for step in range(1, steps):
             for frame_idx in range(ans.shape[1]):
-                print(self.forward(torch.cat((y[:,:pre_output_len+frame_idx], ans[:,frame_idx:frame_idx+1]), dim=1), pre_output_len+frame_idx).shape)
                 ans[:, frame_idx] = self.forward(torch.cat((y[:,:pre_output_len+frame_idx], ans[:,frame_idx:frame_idx+1]), dim=1), pre_output_len+frame_idx).squeeze(1)
         return ans      
