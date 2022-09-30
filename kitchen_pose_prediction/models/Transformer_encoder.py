@@ -66,4 +66,9 @@ class TransformerEncoderMultistep(TransformerEncoder):
         super(TransformerEncoderMultistep, self).__init__(hidden_size, heads, frame_dimension, layers, positional_embedding_max_len, dropout)
     
     def forward_multistep(self, y, pre_output_len=1, steps = 2):
-        pass # TODO        
+        ans = self.forward(y, pre_output_len)
+        for step in range(1, steps):
+            for frame_idx in range(ans.shape[1]):
+                print(self.forward(torch.cat((y[:,:pre_output_len+frame_idx], ans[:,frame_idx:frame_idx+1]), dim=1), pre_output_len+frame_idx).shape)
+                ans[:, frame_idx] = self.forward(torch.cat((y[:,:pre_output_len+frame_idx], ans[:,frame_idx:frame_idx+1]), dim=1), pre_output_len+frame_idx).squeeze(1)
+        return ans      

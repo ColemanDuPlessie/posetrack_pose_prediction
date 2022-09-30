@@ -23,9 +23,9 @@ class LSTMMultistep(LSTMBenchmark):
         assert steps > 1
         ans = []
         other_inputs = None
-        for step in range(len(y.shape[1])):
+        for step in range(1, y.shape[1]+1):
             out, other_inputs = self.layer(y[:,:step], other_inputs)
-            if step >= min_seq_len:
+            if step > min_seq_len:
                 temp_other_inputs = other_inputs
                 for forward_step in range(steps-1):
                     frame, temp_other_inputs = self.layer(out, temp_other_inputs)
