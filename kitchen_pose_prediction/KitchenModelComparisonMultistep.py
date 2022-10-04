@@ -207,7 +207,8 @@ if __name__ == "__main__":
     
     train_data = torch.utils.data.DataLoader(BatchManager("preprocessed_data/shuffled_velo_1024", 0, 438), batches_at_once, True, generator=torch.Generator(device=device), num_workers=os.cpu_count()-1)
     test_data = torch.utils.data.DataLoader(BatchManager("preprocessed_data/shuffled_velo_1024", 438, 655), batches_at_once, True, generator=torch.Generator(device=device), num_workers=os.cpu_count()-1)
-    
+    multistep_test_data = torch.utils.data.DataLoader(BatchManager("preprocessed_data/shuffled_velo_1024", 635, 655), batches_at_once, True, generator=torch.Generator(device=device), num_workers=os.cpu_count()-1)
+
     print("Beginning training...")
     
     # Train the model
@@ -220,7 +221,7 @@ if __name__ == "__main__":
             schedulers[sched_idx].step(model.test_losses[-1])
             sched_idx += 1
         if epoch % predict_freq == 0:
-            networks.test(test_data, min_seq_length, predict_length)
+            networks.test(multistep_test_data, min_seq_length, predict_length)
         print(networks.get_losses_string())
     
     networks.plot_losses_over_time(predict_freq)
