@@ -4,7 +4,7 @@ This file is just a wrapper. You should use it instead of model.py.
 """
 
 import torch
-import model
+from . import model
 
 class Informer(model.Informer):
     
@@ -19,7 +19,7 @@ class Informer(model.Informer):
                                        activation, output_attention, distil, mix, device)
     
     def forward(self, y, pre_output_len = 1):
-        enc_timesteps = torch.arange(0.0, 1.0, 1.0/y.shape[1]).unsqueeze(0).unsqueeze(2).expand(y.shape[0], -1, -1).clone()
+        enc_timesteps = torch.arange(0.0, 1.0, 1.0/y.shape[1]).unsqueeze(0).unsqueeze(2).expand(y.shape[0], -1, y.shape[2]).clone()
         dec_timesteps = enc_timesteps.clone()
         return super().forward(y, enc_timesteps, y, dec_timesteps)[:, pre_output_len:]
     
