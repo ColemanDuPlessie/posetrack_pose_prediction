@@ -12,7 +12,7 @@ from torch.autograd import Variable
 from models.benchmarks import SimpleRepeater
 from models.LSTM import LSTMBenchmark
 from models.Transformer_encoder import TransformerEncoder
-from models.Informer import Informer
+from models.Informer.informer_wrapper import Informer
 # TODO from models.Pyraformer.Pyraformer_SS import Model as Pyraformer
 # TODO from models.Pyraformer.Pyraformer_SS import pyraformer_params
 
@@ -191,9 +191,7 @@ if __name__ == "__main__":
     num_classes = 153
     
     networks = MultiModelHandler(device, ModelWrapper(TransformerEncoder(hidden_size, 8, input_size, num_layers, positional_embedding_max_len), "Transformer (encoder only)", torch.optim.Adam, torch.nn.MSELoss(), {"lr" : learning_rate}),
-                ModelWrapper(Informer(input_size, input_size, input_size, 1, d_model = hidden_size, n_heads = 8,
-                                         e_layers = math.ceil(num_layers/2), d_layers = math.floor(num_layers/2),
-                                         d_ff = hidden_size, activation = "relu", positional_embedding_max_len = positional_embedding_max_len), "Informer", torch.optim.Adam, torch.nn.MSELoss(), {"lr" : learning_rate}),
+                ModelWrapper(Informer(input_size, batch_size, hidden_size, 8, (num_layers+1)//2, num_layers//2, 0.0, device), "Informer", torch.optim.Adam, torch.nn.MSELoss(), {"lr" : learning_rate}),
                 ModelWrapper(LSTMBenchmark(hidden_size, input_size, num_classes, num_layers), "LSTM", torch.optim.Adam, torch.nn.MSELoss(), {"lr" : learning_rate*50}),
                 ModelWrapper(SimpleRepeater(input_size), "Benchmark", None, torch.nn.MSELoss()))
     schedulers = []

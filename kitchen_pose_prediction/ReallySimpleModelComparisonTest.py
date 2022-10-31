@@ -11,7 +11,7 @@ from torch.autograd import Variable
 from models.benchmarks import SimpleRepeater
 from models.LSTM import LSTMBenchmark
 from models.Transformer_encoder import TransformerEncoder
-from models.Informer import Informer
+from models.Informer.informer_wrapper import Informer
 # TODO from models.Pyraformer.Pyraformer_SS import Model as Pyraformer
 # TODO from models.Pyraformer.Pyraformer_SS import pyraformer_params
 
