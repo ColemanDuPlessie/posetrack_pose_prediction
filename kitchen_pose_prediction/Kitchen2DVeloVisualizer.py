@@ -7,11 +7,12 @@ import math
 import random
 import tkinter as tk
 import torch
+import joblib
 from sklearn.preprocessing import MinMaxScaler
 from BatchManager import BatchManager
 from models.LSTM import LSTMBenchmark
 from models.Transformer_encoder import TransformerEncoder
-from models.Informer import Informer
+from models.Informer.informer_wrapper import Informer
 from KitchenModelComparisonTest import ModelWrapper
 
 randomize_batch_series = True
@@ -31,20 +32,20 @@ max_pred_len = 1024
 
 models = {LSTMBenchmark(hidden_size, input_size, input_size, num_layers) : (min_pred_len,),
           TransformerEncoder(hidden_size, 8, input_size, num_layers, max_pred_len*2) : (min_pred_len,),
-          Informer(input_size, input_size, input_size, 1, d_model = hidden_size, n_heads = 8,
-                                   e_layers = math.ceil(num_layers/2), d_layers = math.floor(num_layers/2),
-                                   d_ff = hidden_size, activation = "relu", positional_embedding_max_len = max_pred_len*2) : (min_pred_len, 1)}
+          Informer(input_size, max_pred_len, hidden_size, 8, (num_layers+1)//2, num_layers//2, 0.0, device) : (min_pred_len, 1)}
 
-pretrained_model_to_view = "TrainedKitchenTransformer.pt"
+pretrained_model_to_view = "EddiesTrainedKitchenTransformer.pt"
 dataset_to_view = "30fps_velo_1024"
 
 root = tk.Tk()
 root.title("Kitchen Prediction Visualizer (Velo)")
 root.geometry("900x1200")
 
+cheesy_scaling_multiplier = 0.1 # TODO remove this abomination
+
 height = 800
 width = 1200
-scale = 60
+scale = 60*cheesy_scaling_multiplier
 
 grid_spacing = 120
 grid = [(x*grid_spacing, y*grid_spacing) for y in range(5, -1, -1) for x in range(9)][:51]
@@ -58,7 +59,7 @@ canvas = tk.Canvas(root, bg = "white", height = height, width = width)
 
 def load_data():
     if randomize_batch_series:
-        start = random.randint(0, 655-batches_to_use)
+        start = random.randint(0, 603-batches_to_use)
     else: 
         start = 0
     return torch.utils.data.DataLoader(BatchManager("preprocessed_data/" + dataset_to_view, start, start+batches_to_use))
@@ -82,14 +83,17 @@ class Person:
         self.color = color
     
     def draw(self):
-        frame = next(self.frame_generator)
+        frame = next(self.frame_generator) / largest_value # TODO I'm not sure this will work
         frame = [point*2-1 for point in frame]
         for point in range(0, len(frame), 3):
             origin = grid[point//3]
             draw_arrow(origin, (origin[0]+frame[point+projection[0]]*scale, origin[1]+frame[point+projection[1]]*scale), self.color)
          
-sc = MinMaxScaler()
-data = load_data() # TODO get scaler to inverse-transform
+data = load_data()
+
+old_scaler = joblib.load("preprocessed_data/" + dataset_to_view + "/scaler.gz")
+largest_value = max(abs(torch.max(old_scaler.inverse_transform(max(data, key = lambda l : old_scaler.inverse_transform(l.squeeze()).max())))), abs(torch.min(old_scaler.inverse_transform(min(data, key = lambda l : old_scaler.inverse_transform(l.squeeze()).min()))))).item()
+
 state_dict = torch.load(pretrained_model_to_view, map_location=device)
 for model_type in models:
     try:
@@ -104,10 +108,10 @@ assert model in models
 wrapped_model = ModelWrapper(model, "If you're seeing this, it's a bug", None, torch.nn.MSELoss(), {}, False)
 print("Model %s loaded successfully!" % pretrained_model_to_view)
 
-ground_truth_generator = (frame for batch in data for frame in batch.squeeze()[min_pred_len+1:])
+ground_truth_generator = (frame for batch in data for frame in old_scaler.inverse_transform(batch.squeeze()[min_pred_len+1:]))
 total_expected_len = batches_to_use * (max_pred_len - min_pred_len)
 with torch.no_grad():
-    prediction_generator = (frame for frame in wrapped_model.test(data, min_pred_len, 1).reshape(-1, input_size))
+    prediction_generator = (frame for frame in old_scaler.inverse_transform(wrapped_model.test(data, min_pred_len, 1).reshape(-1, input_size)))
 ground_truth = Person(ground_truth_generator, "green")
 prediction = Person(prediction_generator, "red")
 
