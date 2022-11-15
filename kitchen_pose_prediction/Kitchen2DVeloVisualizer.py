@@ -6,6 +6,7 @@ This needs documentation at some point
 import math
 import random
 import tkinter as tk
+import numpy as np
 import torch
 import joblib
 from sklearn.preprocessing import MinMaxScaler
@@ -41,11 +42,9 @@ root = tk.Tk()
 root.title("Kitchen Prediction Visualizer (Velo)")
 root.geometry("900x1200")
 
-cheesy_scaling_multiplier = 0.1 # TODO remove this abomination
-
 height = 800
 width = 1200
-scale = 60*cheesy_scaling_multiplier
+scale = 60
 
 grid_spacing = 120
 grid = [(x*grid_spacing, y*grid_spacing) for y in range(5, -1, -1) for x in range(9)][:51]
@@ -63,6 +62,18 @@ def load_data():
     else: 
         start = 0
     return torch.utils.data.DataLoader(BatchManager("preprocessed_data/" + dataset_to_view, start, start+batches_to_use))
+
+def get_largest_single_value(batch_manager):
+    """
+    This really shouldn't have to be a helper function, but this is better than
+    a massive inline statement with multiple listcomps.
+    """
+    lambd_largest_single_value = lambda l : old_scaler.inverse_transform(l.squeeze()).max()
+    highest_value = torch.max(torch.Tensor(old_scaler.inverse_transform(np.squeeze(max(batch_manager, key = lambd_largest_single_value)))))
+    lambd_smallest_single_value = lambda l : old_scaler.inverse_transform(l.squeeze()).min()
+    lowest_value = torch.min(torch.Tensor(old_scaler.inverse_transform(np.squeeze(min(batch_manager, key = lambd_smallest_single_value)))))
+    largest_value = max(abs(highest_value), abs(lowest_value)).item()
+    return largest_value
 
 def draw_arrow(origin, tip, color):
     """
@@ -84,6 +95,7 @@ class Person:
     
     def draw(self):
         frame = next(self.frame_generator) / largest_value # TODO I'm not sure this will work
+        print(self.color, frame[0])
         frame = [point*2-1 for point in frame]
         for point in range(0, len(frame), 3):
             origin = grid[point//3]
@@ -92,7 +104,7 @@ class Person:
 data = load_data()
 
 old_scaler = joblib.load("preprocessed_data/" + dataset_to_view + "/scaler.gz")
-largest_value = max(abs(torch.max(old_scaler.inverse_transform(max(data, key = lambda l : old_scaler.inverse_transform(l.squeeze()).max())))), abs(torch.min(old_scaler.inverse_transform(min(data, key = lambda l : old_scaler.inverse_transform(l.squeeze()).min()))))).item()
+largest_value = get_largest_single_value(data)
 
 state_dict = torch.load(pretrained_model_to_view, map_location=device)
 for model_type in models:
