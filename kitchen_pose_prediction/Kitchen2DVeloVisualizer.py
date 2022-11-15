@@ -11,6 +11,7 @@ import torch
 import joblib
 from sklearn.preprocessing import MinMaxScaler
 from BatchManager import BatchManager
+from models.benchmarks import SimpleRepeater
 from models.LSTM import LSTMBenchmark
 from models.Transformer_encoder import TransformerEncoder
 from models.Informer.informer_wrapper import Informer
@@ -117,13 +118,15 @@ for model_type in models:
         continue
 
 assert model in models
+
+# model = SimpleRepeater()
 wrapped_model = ModelWrapper(model, "If you're seeing this, it's a bug", None, torch.nn.MSELoss(), {}, False)
 print("Model %s loaded successfully!" % pretrained_model_to_view)
 
 ground_truth_generator = (frame for batch in data for frame in old_scaler.inverse_transform(batch.squeeze()[min_pred_len+1:]))
 total_expected_len = batches_to_use * (max_pred_len - min_pred_len)
 with torch.no_grad():
-    prediction_generator = (frame for frame in old_scaler.inverse_transform(wrapped_model.test(data, min_pred_len, 1).reshape(-1, input_size)))
+    prediction_generator = (frame for batch in wrapped_model.test(data, min_pred_len) for frame in old_scaler.inverse_transform(batch.squeeze()))
 ground_truth = Person(ground_truth_generator, "green")
 prediction = Person(prediction_generator, "red")
 
