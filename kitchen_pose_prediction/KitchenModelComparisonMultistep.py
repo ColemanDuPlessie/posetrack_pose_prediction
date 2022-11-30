@@ -22,6 +22,12 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 torch.set_default_tensor_type('torch.cuda.FloatTensor' if torch.cuda.is_available() else 'torch.FloatTensor')
 
+def get_loss_filename():
+    i = 0
+    while os.path.isfile("losses" + str(i) + ".txt"):
+        i += 1
+    return "losses" + str(i) + ".txt"
+
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad) # TODO this may not count certain types of nested layers
 
@@ -225,5 +231,5 @@ if __name__ == "__main__":
         print(networks.get_losses_string())
     
     networks.plot_losses_over_time(predict_freq)
-    networks.log_losses("losses.txt")
+    networks.log_losses(get_loss_filename())
     networks.save_models(("TrainedKitchenTransformer.pt", "TrainedKitchenInformer.pt", "TrainedKitchenLSTM.pt", None))
