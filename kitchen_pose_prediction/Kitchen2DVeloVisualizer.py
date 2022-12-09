@@ -11,7 +11,7 @@ from sklearn.preprocessing import MinMaxScaler
 from BatchManager import BatchManager
 from models.LSTM import LSTMBenchmark
 from models.Transformer_encoder import TransformerEncoder
-from models.Informer import Informer
+from models.Informer.informer_wrapper import Informer
 from KitchenModelComparisonTest import ModelWrapper
 
 randomize_batch_series = True
@@ -31,11 +31,9 @@ max_pred_len = 1024
 
 models = {LSTMBenchmark(hidden_size, input_size, input_size, num_layers) : (min_pred_len,),
           TransformerEncoder(hidden_size, 8, input_size, num_layers, max_pred_len*2) : (min_pred_len,),
-          Informer(input_size, input_size, input_size, 1, d_model = hidden_size, n_heads = 8,
-                                   e_layers = math.ceil(num_layers/2), d_layers = math.floor(num_layers/2),
-                                   d_ff = hidden_size, activation = "relu", positional_embedding_max_len = max_pred_len*2) : (min_pred_len, 1)}
+          Informer(input_size, 1024, hidden_size, 8, (num_layers+1)//2, num_layers//2, 0.0, device) : (min_pred_len,)}
 
-pretrained_model_to_view = "TrainedKitchenTransformer.pt"
+pretrained_model_to_view = "EddiesTrained30fpsKitchenInformer.pt"
 dataset_to_view = "30fps_velo_1024"
 
 root = tk.Tk()
