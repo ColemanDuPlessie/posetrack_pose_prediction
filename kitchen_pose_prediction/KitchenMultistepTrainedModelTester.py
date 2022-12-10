@@ -57,6 +57,7 @@ with torch.no_grad():
 losses = wrapped_model.test_losses + wrapped_model.multistep_test_losses
 
 plt.scatter(range(min_steps, max_steps, steps_step), losses)
+plt.show()
 
 with open(get_loss_filename(), "w") as writing:
     writing.write(wrapped_model.name + " " + str(losses))
