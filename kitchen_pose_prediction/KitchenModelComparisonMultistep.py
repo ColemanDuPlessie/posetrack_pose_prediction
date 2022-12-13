@@ -108,7 +108,7 @@ class ModelWrapper:
         return "%s has %d parameters." % (self.name, count_parameters(self.model))
     
     def get_losses_string(self):
-        return "%s train loss: %1.6f %s test loss: %1.6f, %s most recent multistep test loss: %1.6f" % (self.name, self.train_losses[-1], self.name, self.test_losses[-1], self.name, self.multistep_test_losses[-1])
+        return "%s train loss: %1.10f %s test loss: %1.10f, %s most recent multistep test loss: %1.10f" % (self.name, self.train_losses[-1], self.name, self.test_losses[-1], self.name, self.multistep_test_losses[-1])
     
     def get_simple_losses_str(self):
         """
@@ -117,7 +117,7 @@ class ModelWrapper:
         this one should be used for a more human-readable output and called
         every epoch.
         """
-        return ("%s train " + "%f " * len(self.train_losses) + "test " + "%f " * len(self.test_losses) + "multistep " + "%f " * len(self.multistep_test_losses))[:-1] % (self.name, *self.train_losses, *self.test_losses, *self.multistep_test_losses)
+        return ("%s train " + "%1.10f " * len(self.train_losses) + "test " + "%1.10f " * len(self.test_losses) + "multistep " + "%1.10f " * len(self.multistep_test_losses))[:-1] % (self.name, *self.train_losses, *self.test_losses, *self.multistep_test_losses)
 
 class MultiModelHandler:
     """
