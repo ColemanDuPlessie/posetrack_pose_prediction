@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from BatchManager import BatchManager
 from models.LSTM import LSTMMultistep
 from models.Transformer_encoder import TransformerEncoderMultistep
+from models.benchmarks import SimpleRepeater
 from KitchenModelComparisonMultistep import ModelWrapper, get_loss_filename
 
 batches_to_use = 20 # All four of these numbers must be strictly > 0
@@ -57,6 +58,7 @@ with torch.no_grad():
 losses = wrapped_model.test_losses + wrapped_model.multistep_test_losses
 
 plt.scatter(range(min_steps, max_steps, steps_step), losses)
+plt.show()
 
 with open(get_loss_filename(), "w") as writing:
     writing.write(wrapped_model.name + " " + str(losses))
