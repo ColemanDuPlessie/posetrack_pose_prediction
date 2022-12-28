@@ -49,6 +49,7 @@ for model_type in models:
         continue
 
 assert model in models
+# model = SimpleRepeater()
 wrapped_model = ModelWrapper(model, model.__class__.__name__, None, torch.nn.MSELoss(), {})
 print("Model %s loaded successfully!" % pretrained_model_to_view)
 
