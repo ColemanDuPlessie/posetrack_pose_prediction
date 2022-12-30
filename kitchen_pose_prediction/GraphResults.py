@@ -5,7 +5,9 @@ Created on Fri Jul  8 07:56:04 2022
 @author: coley
 """
 
+import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
+import os
 
 COLORS = {
     "Transformer (encoder only)" : {"Train" : "#bb0000",
@@ -119,6 +121,10 @@ def graph_parsed_losses(parsed_losses, title = None):
     plt.ylabel("Mean Squared Error")
     plt.ylim(0.00001, 0.0002)
     plt.title(title)
+    number = 0
+    while os.path.isfile("figure" + str(number) + ".eps"):
+            number += 1
+    plt.savefig("figure" + (str)(number) + ".eps", format='eps')
     plt.show()
 
 def graph_multistep_losses(parsed_multistep_losses, names, title = None):
@@ -126,14 +132,28 @@ def graph_multistep_losses(parsed_multistep_losses, names, title = None):
         name = names[i]
         losses = parsed_multistep_losses[i]
         plt.plot(range(1, len(losses)+1),losses, label = name, color = COLORS[name]["Multistep"])
-    plt.legend()
+    # plt.legend()
     plt.yscale('log')
     plt.xlabel("Prediction Length (frames)")
     plt.ylabel("Mean Squared Error")
+    plt.ylim(0.000001, 0.0002)
     plt.title(title)
+    number = 0
+    while os.path.isfile("figure" + str(number) + ".eps"):
+            number += 1
+    plt.savefig("figure" + (str)(number) + ".eps", format='eps')
+    plt.show()
+
+def generate_legend():
+    patches = []
+    for name, colors in COLORS.items():
+        for pred_type, color in colors.items():
+            if pred_type == "Multistep" and name == "Informer": continue
+            patches.append(mpatches.Patch(color=color, label=pred_type + " (" + name + ")"))
+    plt.legend(handles=patches)
     plt.show()
 
 if __name__ == "__main__":
     graph_parsed_losses(parse_losses("losses8.txt"))
     graph_parsed_losses(parse_losses("losses0.txt"))
-    graph_multistep_losses(parse_multistep_losses(["losses2.txt", "losses1(benchmark).txt"]), ["Transformer (encoder only)", "Benchmark"])
+    graph_multistep_losses(parse_multistep_losses(["losses2.txt", "losses1(benchmark 30fps).txt"]), ["Transformer (encoder only)", "Benchmark"])

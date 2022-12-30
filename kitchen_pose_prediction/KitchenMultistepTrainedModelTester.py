@@ -32,7 +32,7 @@ models = {LSTMMultistep(hidden_size, input_size, input_size, num_layers) : (min_
           TransformerEncoderMultistep(hidden_size, 8, input_size, num_layers, max_pred_len*2) : (min_pred_len,)}
 
 pretrained_model_to_view = "EddiesTrained30fpsKitchenTransformer.pt"
-dataset_to_view = "30fps_velo_1024"
+dataset_to_view = "shuffled_velo_1024"
 
 def load_data(start_batch, end_batch):
     return torch.utils.data.DataLoader(BatchManager("preprocessed_data/" + dataset_to_view, start_batch, end_batch))
@@ -49,7 +49,7 @@ for model_type in models:
         continue
 
 assert model in models
-# model = SimpleRepeater()
+model = SimpleRepeater()
 wrapped_model = ModelWrapper(model, model.__class__.__name__, None, torch.nn.MSELoss(), {})
 print("Model %s loaded successfully!" % pretrained_model_to_view)
 
