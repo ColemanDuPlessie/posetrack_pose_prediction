@@ -119,11 +119,11 @@ def graph_parsed_losses(parsed_losses, title = None):
     plt.yscale('log')
     plt.xlabel("Epochs")
     plt.ylabel("Mean Squared Error")
-    plt.ylim(0.00001, 0.0002)
+    plt.ylim(0.0000025, 0.0002)
     plt.title(title)
     number = 0
     while os.path.isfile("figure" + str(number) + ".eps"):
-            number += 1
+        number += 1
     plt.savefig("figure" + (str)(number) + ".eps", format='eps')
     plt.show()
 
@@ -140,7 +140,7 @@ def graph_multistep_losses(parsed_multistep_losses, names, title = None):
     plt.title(title)
     number = 0
     while os.path.isfile("figure" + str(number) + ".eps"):
-            number += 1
+        number += 1
     plt.savefig("figure" + (str)(number) + ".eps", format='eps')
     plt.show()
 
@@ -150,8 +150,15 @@ def generate_legend():
         for pred_type, color in colors.items():
             if pred_type == "Multistep" and name == "Informer": continue
             patches.append(mpatches.Patch(color=color, label=pred_type + " (" + name + ")"))
-    plt.legend(handles=patches)
-    plt.show()
+    legend = plt.legend(handles=patches)
+    fig  = legend.figure
+    fig.canvas.draw()
+    bbox  = legend.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
+    number = 0
+    while os.path.isfile("figure" + str(number) + ".eps"):
+        number += 1
+    fig.savefig("figure" + (str)(number) + ".eps", bbox_inches=bbox, format='eps')
+    fig.show()
 
 if __name__ == "__main__":
     graph_parsed_losses(parse_losses("losses8.txt"))
